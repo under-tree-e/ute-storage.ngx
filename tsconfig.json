@@ -1,4 +1,3 @@
-/* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
   "compileOnSave": false,
   "compilerOptions": {
@@ -14,7 +13,9 @@
     "paths": {
       "ngx-ute-storage": [
         "dist/ngx-ute-storage"
-      ]
+      ],
+      "@interfaces/*": ["projects/ngx-ute-storage/src/lib/interfaces/*"],
+      "@services/*": ["projects/ngx-ute-storage/src/lib/services/*"],
     },
     "declaration": false,
     "downlevelIteration": true,

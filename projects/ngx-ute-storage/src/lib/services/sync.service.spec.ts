@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { NgxUteStorageService } from './ngx-ute-storage.service';
+import { SyncService } from './sync.service';
 
-describe('NgxUteStorageService', () => {
-  let service: NgxUteStorageService;
+describe('SyncService', () => {
+  let service: SyncService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(NgxUteStorageService);
+    service = TestBed.inject(SyncService);
   });
 
   it('should be created', () => {

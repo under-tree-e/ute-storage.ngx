@@ -1,19 +1,18 @@
 import { ModuleWithProviders, NgModule } from "@angular/core";
-import { NgxUteStorageComponent } from "./ngx-ute-storage.component";
-import { NgxUteStorageService } from "./ngx-ute-storage.service";
-import { ModuleConfigs } from "./interfaces/config";
+import { StorageService } from "@services/storage.service";
+import { ModuleConfigs } from "@interfaces/config";
 
 @NgModule({
-    declarations: [NgxUteStorageComponent],
+    declarations: [],
     imports: [],
-    exports: [NgxUteStorageComponent],
+    exports: [],
 })
 export class NgxUteStorageModule {
     static forRoot(config: ModuleConfigs): ModuleWithProviders<NgxUteStorageModule> {
         console.log(config);
         return {
             ngModule: NgxUteStorageModule,
-            providers: [NgxUteStorageService, { provide: "config", useValue: config }],
+            providers: [StorageService, { provide: "config", useValue: config }],
         };
     }
 }

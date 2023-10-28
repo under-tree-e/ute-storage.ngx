@@ -1,12 +1,22 @@
 {
   "name": "ute-storage.ngx",
   "version": "0.0.1",
+  "description": "Angular storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
+  },
+  "keywords": [
+    "typescript",
+    "es5",
+    "sqlite"
+  ],
+  "author": {
+    "name": "Under Tree Entertainment",
+    "url": "https://under-tree-e.com"
   },
   "private": true,
   "dependencies": {
@@ -18,9 +28,11 @@
     "@angular/platform-browser": "^16.1.0",
     "@angular/platform-browser-dynamic": "^16.1.0",
     "@angular/router": "^16.1.0",
+    "@capacitor-community/sqlite": "^5.4.2-1",
     "@capacitor/core": "^5.5.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "uuidv4": "^6.2.13",
     "zone.js": "~0.13.0"
   },
   "devDependencies": {
