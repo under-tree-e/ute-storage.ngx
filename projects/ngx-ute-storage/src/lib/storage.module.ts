@@ -1,6 +1,6 @@
 import { ModuleWithProviders, NgModule } from "@angular/core";
 import { StorageService } from "@services/storage.service";
-import { ModuleConfigs } from "@interfaces/config";
+import { UteModuleConfigs } from "@interfaces/config";
 
 @NgModule({
     declarations: [],
@@ -8,7 +8,7 @@ import { ModuleConfigs } from "@interfaces/config";
     exports: [],
 })
 export class NgxUteStorageModule {
-    static forRoot(config: ModuleConfigs): ModuleWithProviders<NgxUteStorageModule> {
+    static forRoot(config: UteModuleConfigs): ModuleWithProviders<NgxUteStorageModule> {
         console.log(config);
         return {
             ngModule: NgxUteStorageModule,

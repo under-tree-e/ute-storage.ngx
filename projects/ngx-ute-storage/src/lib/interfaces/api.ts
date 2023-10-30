@@ -1,12 +1,13 @@
-import { Objects } from "@interfaces/object";
+import { UteObjects } from "@interfaces/object";
 
 /**
- * @params tb - Table name
- * @params st - Select values
- * @params wr - Where values
+ * Ute Storage API Query
+ * @param {string} tb - Table name
+ * @param {string[] | UteObjects} st - Select values
+ * @param {UteObjects} wr - Where values
  */
-export interface Apis {
+export interface UteApis {
     tb?: string;
-    st?: string[] | Objects;
-    wr?: Objects;
+    st?: string[] | UteObjects;
+    wr?: UteObjects;
 }

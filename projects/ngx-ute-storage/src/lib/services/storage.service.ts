@@ -1,14 +1,14 @@
 import { Inject, Injectable } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
-import { ModuleConfigs } from "@interfaces/config";
+import { UteModuleConfigs } from "@interfaces/config";
 import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult, DBSQLiteValues } from "@capacitor-community/sqlite";
 import { defineCustomElements as jeepSqlite } from "jeep-sqlite/loader";
 import { lastValueFrom } from "rxjs";
 import { HttpClient } from "@angular/common/http";
 import { v4 } from "uuid";
-import { Apis } from "@interfaces/api";
-import { Objects } from "@interfaces/object";
-import { QueryStrings } from "@interfaces/query";
+import { UteApis } from "@interfaces/api";
+import { UteObjects } from "@interfaces/object";
+import { UteQueryStrings } from "@interfaces/query";
 
 @Injectable({
     providedIn: "root",
@@ -21,9 +21,9 @@ export class StorageService {
     private requestDB: string = this.defaultDB;
     private stMethod: typeof this.getStorage | typeof this.postStorage | typeof this.putStorage | typeof this.deleteStorage = null!;
 
-    constructor(@Inject("config") private config: ModuleConfigs, private http: HttpClient) {
+    constructor(@Inject("config") private config: UteModuleConfigs, private http: HttpClient) {
         console.log(this.config);
-        this.defaultDB = this.config.defaultDB;
+        this.defaultDB = this.config.name;
 
         this.initialize();
     }
@@ -147,7 +147,7 @@ export class StorageService {
      * @param dbName - DB name
      * @returns object with array of request datas
      */
-    public request(method: string, apireq: Apis[], dbName?: string): Promise<Objects> {
+    public request(method: string, apireq: UteApis[], dbName?: string): Promise<UteObjects> {
         // console.log(111);
 
         // console.log("dbName", dbName);
@@ -176,9 +176,9 @@ export class StorageService {
             }
 
             try {
-                let result: Objects = {};
+                let result: UteObjects = {};
                 for (let req of apireq) {
-                    let storageResult: Objects = await this.stMethod(req, dbName);
+                    let storageResult: UteObjects = await this.stMethod(req, dbName);
                     result = { ...result, ...storageResult };
                 }
                 // await this.saveToLocalDisk();
@@ -199,12 +199,12 @@ export class StorageService {
      * @param dbName
      * @returns
      */
-    private getStorage(apireq: Apis, dbName: string): Promise<Objects> {
+    private getStorage(apireq: UteApis, dbName: string): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
             try {
-                let sqlString: QueryStrings = this.sqlConvert("GET", apireq);
+                let sqlString: UteQueryStrings = this.sqlConvert("GET", apireq);
                 // console.log(`SELECT ${sqlString.select} FROM ${apireq.tb} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.tb} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
                 // console.log(result);
@@ -223,7 +223,7 @@ export class StorageService {
      * @param dbName
      * @returns
      */
-    private postStorage(apireq: Apis, dbName: string): Promise<Objects> {
+    private postStorage(apireq: UteApis, dbName: string): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
@@ -248,7 +248,7 @@ export class StorageService {
                 });
                 // console.log(apireq);
 
-                let sqlString: QueryStrings = this.sqlConvert("POST", apireq);
+                let sqlString: UteQueryStrings = this.sqlConvert("POST", apireq);
                 // console.log(`INSERT INTO ${apireq.tb} ${sqlString.insert};`);
                 let result: any = await sqlDB.run(`INSERT INTO ${apireq.tb} ${sqlString.insert};`);
 
@@ -274,7 +274,7 @@ export class StorageService {
      * @param dbName
      * @returns
      */
-    private putStorage(apireq: Apis, dbName: string): Promise<Objects> {
+    private putStorage(apireq: UteApis, dbName: string): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
@@ -283,7 +283,7 @@ export class StorageService {
                     reject("request not object");
                     return;
                 }
-                let sqlString: QueryStrings = this.sqlConvert("PUT", apireq);
+                let sqlString: UteQueryStrings = this.sqlConvert("PUT", apireq);
                 // console.log(`UPDATE ${apireq.tb} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 await sqlDB.run(`UPDATE ${apireq.tb} SET ${sqlString.update} WHERE ${sqlString.where};`);
@@ -304,7 +304,7 @@ export class StorageService {
      * @param dbName
      * @returns
      */
-    private deleteStorage(apireq: Apis, dbName: string): Promise<Objects> {
+    private deleteStorage(apireq: UteApis, dbName: string): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
@@ -313,7 +313,7 @@ export class StorageService {
                     reject("request not object");
                     return;
                 }
-                let sqlString: QueryStrings = this.sqlConvert("DELETE", apireq);
+                let sqlString: UteQueryStrings = this.sqlConvert("DELETE", apireq);
                 // console.log(`DELETE FROM ${apireq.tb} WHERE ${sqlString.where};`);
 
                 await sqlDB.run(`DELETE FROM ${apireq.tb} WHERE ${sqlString.where};`);
@@ -358,7 +358,7 @@ export class StorageService {
      * @param apireq
      * @returns
      */
-    private sqlConvert(method: string, apireq: Apis): QueryStrings {
+    private sqlConvert(method: string, apireq: UteApis): UteQueryStrings {
         let clearSTObject: any = apireq.st && !Array.isArray(apireq.st) ? JSON.parse(JSON.stringify(apireq.st)) : null;
         if (clearSTObject) {
             delete clearSTObject.id;
