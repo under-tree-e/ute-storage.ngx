@@ -11,3 +11,40 @@ export interface UteQueryStrings {
     update?: string;
     where?: string;
 }
+
+export enum UteQuerySysParams {
+    pra = "PRAGMA table_info",
+
+    sel = "SELECT",
+    cou = "COUNT",
+    fro = "FROM",
+
+    ins = "INSERT INTO",
+    set = "SET",
+
+    upd = "UPDATE",
+    val = "VALUES",
+
+    del = "DELETE FROM",
+
+    whe = "WHERE",
+}
+
+export enum UteQueryWRParams {
+    and = "AND",
+    not = "NOT",
+    or = "OR",
+
+    in = "IN",
+    inN = "NOT IN",
+
+    bet = "BETWEEN",
+    betN = "NOT BETWEEN",
+
+    lik = "LIKE",
+    likN = "NOT LIKE",
+
+    ord = "ORDER BY",
+    ordA = "ASC",
+    ordD = "DESC",
+}
