@@ -22,6 +22,9 @@ export enum UteQuerySysParams {
     ins = "INSERT INTO",
     set = "SET",
 
+    inj = "INNER JOIN",
+    on = "ON",
+
     upd = "UPDATE",
     val = "VALUES",
 

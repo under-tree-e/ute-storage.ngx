@@ -5,13 +5,15 @@
  * @param {boolean} primaryKey - Set field as "Primary Key"
  * @param {boolean} allowNull - Set field not allow "Empty" values
  * @param {UteModelDefaultValues | number | string} defaultValue - Default value for field if it`s empty
+ * @param {string} references - Name of table & column to assotiation beetwen tables ( "Table.Column" )
  */
 export interface UteStorageModels {
     type: UteModelTypes;
-    autoIncrement: boolean;
-    primaryKey: boolean;
-    allowNull: boolean;
-    defaultValue: UteModelDefaultValues | number | string;
+    autoIncrement?: boolean;
+    primaryKey?: boolean;
+    allowNull?: boolean;
+    defaultValue?: UteModelDefaultValues | number | string;
+    references?: string;
 }
 
 enum UteModelTypes {

@@ -204,6 +204,25 @@ export class StorageService {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
             try {
+                const queryPR: string = `PRAGMA table_info(${apireq.tb});`;
+                let resultPR = await sqlDB.query(queryPR);
+                console.log(resultPR);
+                resultPR.values?.map((vl: any) => {
+                    console.log(vl);
+
+                    // if(vl.){
+
+                    // }
+                    // switch (vl.dflt_value) {
+                    //     case "'@UUID4'":
+                    //         apireq.st && !apireq.st[vl.name] ? (apireq.st[vl.name] = v4()) : null;
+                    //         break;
+                    //     case "'@DATE'":
+                    //         apireq.st && !apireq.st[vl.name] ? (apireq.st[vl.name] = new Date().toISOString()) : null;
+                    //         break;
+                    // }
+                });
+
                 let sqlString: UteQueryStrings = this.sqlConvert("GET", apireq);
                 // console.log(`SELECT ${sqlString.select} FROM ${apireq.tb} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.tb} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
