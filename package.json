@@ -3,11 +3,11 @@
   "version": "0.0.1",
   "description": "Angular storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "scripts": {
-    "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "fix": "npm audit fix --force",
+    "update": "ncu --upgrade && npm i --force && npm run fix",
+    "printdoc": "typedoc"
   },
   "keywords": [
     "typescript",
@@ -47,6 +47,8 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "ng-packagr": "^16.0.0",
+    "npm-check-updates": "^16.14.6",
+    "typedoc": "^0.25.3",
     "typescript": "~5.1.3"
   }
 }

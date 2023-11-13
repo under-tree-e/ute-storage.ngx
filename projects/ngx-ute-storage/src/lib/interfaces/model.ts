@@ -1,22 +1,52 @@
 /**
  * Ute Storage Models Structure
- * @param {UteModelTypes} type - Field type
- * @param {boolean} autoIncrement - Use "Auto Increment" for field
- * @param {boolean} primaryKey - Set field as "Primary Key"
- * @param {boolean} allowNull - Set field not allow "Empty" values
- * @param {UteModelDefaultValues | number | string} defaultValue - Default value for field if it`s empty
- * @param {string} references - Name of table & column to assotiation beetwen tables ( "Table.Column" )
+ * @prop {@link UteStorageModels.type | type}: `UteModelTypes` - Field type
+ * @prop {@link UteStorageModels.autoIncrement | autoIncrement}?: `boolean` - Use "Auto Increment" for field
+ * @prop {@link UteStorageModels.primaryKey | primaryKey}?: `boolean` - Set field as "Primary Key"
+ * @prop {@link UteStorageModels.allowNull | allowNull}?: `boolean` - Set field not allow "Empty" values
+ * @prop {@link UteStorageModels.defaultValue | defaultValue}?: `UteModelDefaultValues | number | string` - Default value for field if it`s empty
+ * @prop {@link UteStorageModels.references | references}?: `string` - Name of table & column to assotiation beetwen tables</br>
+ *
+ * Example: `Table.Column`
  */
+
 export interface UteStorageModels {
+    /**
+     * Field type
+     */
     type: UteModelTypes;
+    /**
+     * Use "Auto Increment" for field
+     */
     autoIncrement?: boolean;
+    /**
+     * Set field as "Primary Key"
+     */
     primaryKey?: boolean;
+    /**
+     * Set field not allow "Empty" values
+     */
     allowNull?: boolean;
+    /**
+     * Default value for field if it`s empty on insert
+     */
     defaultValue?: UteModelDefaultValues | number | string;
+    /**
+     * Name of table & column to assotiation beetwen tables
+     * @example "Table.Column"
+     */
     references?: string;
 }
 
-enum UteModelTypes {
+/**
+ * Ute Storage Models Type enum
+ * @prop int: `INTERGER`
+ * @prop var: `VARCHAR(255)`
+ * @prop bool: `BOOLEAN`
+ * @prop date: `DATE`
+ * @prop text: `TEXT`
+ */
+export enum UteModelTypes {
     int = "INTERGER",
     var = "VARCHAR(255)",
     bool = "BOOLEAN",
@@ -24,7 +54,12 @@ enum UteModelTypes {
     text = "TEXT",
 }
 
-enum UteModelDefaultValues {
+/**
+ * Ute Storage Models Default values enum
+ * @prop uuid: `UUID4 string`
+ * @prop date: `new Date()`
+ */
+export enum UteModelDefaultValues {
     uuid = "@UUID4",
     date = "@DATE",
 }

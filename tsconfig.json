@@ -14,8 +14,15 @@
       "ngx-ute-storage": [
         "dist/ngx-ute-storage"
       ],
-      "@interfaces/*": ["projects/ngx-ute-storage/src/lib/interfaces/*"],
-      "@services/*": ["projects/ngx-ute-storage/src/lib/services/*"],
+      "@interfaces/*": [
+        "projects/ngx-ute-storage/src/lib/interfaces/*"
+      ],
+      "@services/*": [
+        "projects/ngx-ute-storage/src/lib/services/*"
+      ],
+      "@app/*": [
+        "projects/ngx-ute-storage/src/lib/*"
+      ]
     },
     "declaration": false,
     "downlevelIteration": true,
@@ -29,6 +36,12 @@
       "ES2022",
       "dom"
     ]
+  },
+  "typedocOptions": {
+    "entryPoints": [
+      "./projects/ngx-ute-storage/src/public-api.ts"
+    ],
+    "out": "dist/docs"
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

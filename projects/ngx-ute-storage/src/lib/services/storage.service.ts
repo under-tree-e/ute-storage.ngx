@@ -8,7 +8,8 @@ import { HttpClient } from "@angular/common/http";
 import { v4 } from "uuid";
 import { UteApis } from "@interfaces/api";
 import { UteObjects } from "@interfaces/object";
-import { UteQueryStrings } from "@interfaces/query";
+import { UteQueryStrings, UteQuerySysParams } from "@interfaces/query";
+import * as fs from "fs";
 
 @Injectable({
     providedIn: "root",
@@ -22,37 +23,47 @@ export class StorageService {
     private stMethod: typeof this.getStorage | typeof this.postStorage | typeof this.putStorage | typeof this.deleteStorage = null!;
 
     constructor(@Inject("config") private config: UteModuleConfigs, private http: HttpClient) {
-        console.log(this.config);
-        this.defaultDB = this.config.name;
+        if (!this.config) {
+            throw Error(`Empty config params`);
+        } else {
+            this.defaultDB = this.config.name;
 
-        this.initialize();
+            if (!this.config.sync) {
+                this.initialize();
+            }
+        }
     }
 
     /**
-     * Initialization
+     * Initialization module
      * @returns boolean result
      */
-    private initialize() {
-        return new Promise(async (resolve) => {
-            this.sqlitePlugin = CapacitorSQLite;
-            this.sqlite = new SQLiteConnection(this.sqlitePlugin);
+    public initialize() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                this.sqlitePlugin = CapacitorSQLite;
+                this.sqlite = new SQLiteConnection(this.sqlitePlugin);
 
-            switch (this.platform) {
-                case "ios":
-                case "android":
-                    //
-                    break;
-                case "web":
-                    jeepSqlite(window);
-                    const jeepEl: any = document.createElement("jeep-sqlite");
-                    document.body.appendChild(jeepEl);
-                    jeepEl.autoSave = true;
-                    await customElements.whenDefined("jeep-sqlite");
-                    await this.initWebStore();
-                    break;
+                switch (this.platform) {
+                    case "ios":
+                    case "android":
+                        //
+                        break;
+                    case "web":
+                        jeepSqlite(window);
+                        const jeepEl: any = document.createElement("jeep-sqlite");
+                        document.body.appendChild(jeepEl);
+                        jeepEl.autoSave = true;
+                        await customElements.whenDefined("jeep-sqlite");
+                        await this.initWebStore();
+                        break;
+                }
+                await this.migrate();
+                resolve(true);
+            } catch (error) {
+                console.error("Ute Storage Init", error);
+                reject(false);
             }
-
-            resolve(true);
         });
     }
 
@@ -71,7 +82,17 @@ export class StorageService {
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
                 if (!isMainDB || update) {
                     let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
-                    let models: any = await lastValueFrom(this.http.get("assets/databases/models.json?v=" + Date.now()));
+
+                    let modelFiles: any = await fs.promises.readdir(`${process.cwd()}/src/app/models/`);
+                    let models: any = {};
+
+                    for (let file of modelFiles) {
+                        let fileName: string = file.split(".")[0];
+                        let fileModel: any = require(`${this.config.model ? this.config.model : "src/interfaces/models/"}`);
+                        models[fileName] = fileModel;
+                    }
+
+                    // let models: any = await lastValueFrom(this.http.get(`${this.config.model ? this.config.model : 'src/interfaces/models/'}models.json?v=` + Date.now()));
 
                     const tableNames = Object.keys(models);
 
@@ -79,58 +100,70 @@ export class StorageService {
                     for (let tableName of tableNames) {
                         const tableDefinition = models[tableName];
                         let modelsData: any[] = [];
-                        const columnDefinitions = Object.keys(tableDefinition).map((columnName) => {
-                            const columnDefinition = tableDefinition[columnName];
-                            const columnType = columnDefinition.type;
-                            const primaryKey = columnDefinition.primaryKey ? "PRIMARY KEY" : "";
-                            const autoIncrement = columnDefinition.autoIncrement ? "AUTO_INCREMENT" : "";
-                            const allowNull = columnDefinition.allowNull === undefined || columnDefinition.allowNull ? "" : "NOT NULL";
+                        let tableRefences: string[] = [];
+                        let columnDefinitions = Object.keys(tableDefinition).map((columnName) => {
+                            const columnDefinition: any = tableDefinition[columnName];
 
-                            let param: string = `${columnName} ${columnType} ${autoIncrement} ${primaryKey} ${allowNull} ${
-                                columnDefinition.defaultValue != undefined ? `DEFAULT '${columnDefinition.defaultValue}'` : ""
+                            const columnType: string = ` ${columnDefinition.type}`;
+                            const primaryKey: string = columnDefinition.primaryKey ? ` ${UteQuerySysParams.prk}` : "";
+                            const autoIncrement: string = columnDefinition.autoIncrement ? ` ${UteQuerySysParams.aui}` : "";
+                            const allowNull: string = columnDefinition.allowNull === undefined || columnDefinition.allowNull ? "" : ` ${UteQuerySysParams.non}`;
+                            const references: string = columnDefinition.references
+                                ? `${UteQuerySysParams.fok} (${columnName}) ${UteQuerySysParams.ref} ${columnDefinition.references.replace(".", "(")})`
+                                : "";
+                            if (references) {
+                                tableRefences.push(references);
+                            }
+
+                            let param: string = `${columnName}${columnType}${autoIncrement}${primaryKey}${allowNull}${
+                                columnDefinition.defaultValue != undefined ? ` ${UteQuerySysParams.def} '${columnDefinition.defaultValue}'` : ""
                             }`;
                             modelsData.push({ name: columnName, params: param });
                             return param;
                         });
+                        if (tableRefences.length > 0) {
+                            columnDefinitions = [...columnDefinitions, ...tableRefences];
+                        }
 
-                        createTableQueries.push(`CREATE TABLE IF NOT EXISTS ${tableName} (${columnDefinitions.join(", ")});`);
+                        createTableQueries.push(`${UteQuerySysParams.crt} ${UteQuerySysParams.ine} ${tableName} (${columnDefinitions.join(", ")});`);
 
                         if (update) {
-                            const queryPR: string = `PRAGMA table_info(${tableName});`;
+                            const queryPR: string = `${UteQuerySysParams.pra}(${tableName});`;
                             let result = await sqlDB.query(queryPR);
 
                             if (result.values && result.values.length > 0) {
-                                createTableQueries.push(`DROP TABLE IF EXISTS ${tableName}_old;`);
-                                createTableQueries.push(`ALTER TABLE ${tableName} RENAME TO ${tableName}_old;`);
-                                createTableQueries.push(`CREATE TABLE ${tableName} (${columnDefinitions.join(", ")});`);
+                                createTableQueries.push(`${UteQuerySysParams.drt} ${UteQuerySysParams.iex} ${tableName}_new;`);
+                                createTableQueries.push(`${UteQuerySysParams.crt} ${tableName}_new (${columnDefinitions.join(", ")});`);
                                 let columnsString: string = modelsData
                                     .filter((md: any) => result.values?.some((vl: any) => md.name === vl.name))
                                     .map((md: any) => md.name)
                                     .join(", ");
-                                createTableQueries.push(`INSERT INTO ${tableName} (${columnsString}) SELECT ${columnsString} FROM ${tableName}_old;`);
-                                createTableQueries.push(`DROP TABLE ${tableName}_old;`);
+                                createTableQueries.push(
+                                    `${UteQuerySysParams.ins} ${tableName}_new (${columnsString}) ${UteQuerySysParams.sel} ${columnsString} ${UteQuerySysParams.fro} ${tableName};`
+                                );
+                                createTableQueries.push(`${UteQuerySysParams.drt} ${tableName};`);
+                                createTableQueries.push(`${UteQuerySysParams.alt} ${tableName}_new ${UteQuerySysParams.ret} ${tableName};`);
                             }
                         }
                     }
 
                     for (let query of createTableQueries) {
-                        // console.log(query);
                         await sqlDB.execute(query);
                     }
 
                     await this.closeConnection(this.defaultDB);
                 }
 
-                this.requestDB = "currencies";
-                let isCurDB: boolean = await this.isDatabase("currencies");
-                if (!isCurDB || update) {
-                    this.copyFromAssets();
-                }
-
-                this.requestDB = "media";
-                let isMedDB: boolean = await this.isDatabase("media");
-                if (!isMedDB || update) {
-                    this.copyFromAssets();
+                let databasesFile: UteObjects<any> = await lastValueFrom(this.http.get(`${this.config.db ? this.config.db : "assets/databases/"}databases.json?v=` + Date.now()));
+                if (databasesFile) {
+                    let dbList: string[] = databasesFile["databases"];
+                    for (let dbName of dbList) {
+                        this.requestDB = dbName;
+                        let isCurDB: boolean = await this.isDatabase(dbName);
+                        if (!isCurDB) {
+                            await this.copyFromAssets();
+                        }
+                    }
                 }
 
                 resolve(true);
@@ -148,10 +181,6 @@ export class StorageService {
      * @returns object with array of request datas
      */
     public request(method: string, apireq: UteApis[], dbName?: string): Promise<UteObjects> {
-        // console.log(111);
-
-        // console.log("dbName", dbName);
-
         return new Promise(async (resolve, reject) => {
             if (!dbName) {
                 dbName = this.defaultDB;
@@ -181,10 +210,7 @@ export class StorageService {
                     let storageResult: UteObjects = await this.stMethod(req, dbName);
                     result = { ...result, ...storageResult };
                 }
-                // await this.saveToLocalDisk();
 
-                // await this.closeConnection(dbName);
-                // console.log(222);
                 resolve(result);
             } catch (error: any) {
                 reject(error);
@@ -204,31 +230,30 @@ export class StorageService {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
             try {
-                const queryPR: string = `PRAGMA table_info(${apireq.tb});`;
-                let resultPR = await sqlDB.query(queryPR);
-                console.log(resultPR);
-                resultPR.values?.map((vl: any) => {
-                    console.log(vl);
+                const queryPR: string = `PRAGMA foreign_key_list(${apireq.table});`;
+                let resultFK: any = await sqlDB.query(queryPR);
+                console.log(apireq.table);
+                console.log(resultFK);
+                let refData: string = "";
+                let pragmaList: any = {};
 
-                    // if(vl.){
+                if (resultFK.values.length > 0) {
+                    for (let fk of resultFK.values) {
+                        refData += `INNER JOIN ${fk.table} ON ${fk.table}.${fk.to} = ${apireq.table}.${fk.from}`;
+                        const queryPRF: string = `PRAGMA table_info(${fk.table});`;
+                        let result: any = await sqlDB.query(queryPRF);
+                        pragmaList[fk.table] = result.values.map((vl: any) => vl.name);
+                    }
+                }
+                console.log(refData);
+                console.log(pragmaList);
 
-                    // }
-                    // switch (vl.dflt_value) {
-                    //     case "'@UUID4'":
-                    //         apireq.st && !apireq.st[vl.name] ? (apireq.st[vl.name] = v4()) : null;
-                    //         break;
-                    //     case "'@DATE'":
-                    //         apireq.st && !apireq.st[vl.name] ? (apireq.st[vl.name] = new Date().toISOString()) : null;
-                    //         break;
-                    // }
-                });
+                let sqlString: UteQueryStrings = this.sqlConvert("GET", apireq, pragmaList);
+                console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
+                let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
+                console.log(result);
 
-                let sqlString: UteQueryStrings = this.sqlConvert("GET", apireq);
-                // console.log(`SELECT ${sqlString.select} FROM ${apireq.tb} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
-                let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.tb} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
-                // console.log(result);
-
-                resolve({ [apireq.tb as string]: result.values ? result.values : [] });
+                resolve({ [apireq.table as string]: result.values ? result.values : [] });
             } catch (error) {
                 reject(error);
                 return;
@@ -247,35 +272,35 @@ export class StorageService {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
             try {
-                if (Array.isArray(apireq.st)) {
+                if (Array.isArray(apireq.select)) {
                     reject("request not object");
                     return;
                 }
 
-                const queryPR: string = `PRAGMA table_info(${apireq.tb});`;
+                const queryPR: string = `PRAGMA table_info(${apireq.table});`;
                 let resultPR = await sqlDB.query(queryPR);
                 // console.log(resultPR);
                 resultPR.values?.map((vl: any) => {
                     switch (vl.dflt_value) {
                         case "'@UUID4'":
-                            apireq.st && !apireq.st[vl.name] ? (apireq.st[vl.name] = v4()) : null;
+                            apireq.select && !apireq.select[vl.name] ? (apireq.select[vl.name] = v4()) : null;
                             break;
                         case "'@DATE'":
-                            apireq.st && !apireq.st[vl.name] ? (apireq.st[vl.name] = new Date().toISOString()) : null;
+                            apireq.select && !apireq.select[vl.name] ? (apireq.select[vl.name] = new Date().toISOString()) : null;
                             break;
                     }
                 });
                 // console.log(apireq);
 
                 let sqlString: UteQueryStrings = this.sqlConvert("POST", apireq);
-                // console.log(`INSERT INTO ${apireq.tb} ${sqlString.insert};`);
-                let result: any = await sqlDB.run(`INSERT INTO ${apireq.tb} ${sqlString.insert};`);
+                // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
+                let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
                 resolve({
-                    [apireq.tb as string]:
+                    [apireq.table as string]:
                         result.changes && result.changes.lastId
                             ? {
-                                  ...apireq.st,
+                                  ...apireq.select,
                                   ...{ id: result.changes.lastId },
                               }
                             : [],
@@ -298,17 +323,17 @@ export class StorageService {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
             try {
-                if (Array.isArray(apireq.st)) {
+                if (Array.isArray(apireq.select)) {
                     reject("request not object");
                     return;
                 }
                 let sqlString: UteQueryStrings = this.sqlConvert("PUT", apireq);
-                // console.log(`UPDATE ${apireq.tb} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
-                await sqlDB.run(`UPDATE ${apireq.tb} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 resolve({
-                    [apireq.tb as string]: apireq.st,
+                    [apireq.table as string]: apireq.select,
                 });
             } catch (error) {
                 reject(error);
@@ -328,16 +353,16 @@ export class StorageService {
             let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
             // console.log(this.sqlDB);
             try {
-                if (Array.isArray(apireq.st)) {
+                if (Array.isArray(apireq.select)) {
                     reject("request not object");
                     return;
                 }
                 let sqlString: UteQueryStrings = this.sqlConvert("DELETE", apireq);
-                // console.log(`DELETE FROM ${apireq.tb} WHERE ${sqlString.where};`);
+                // console.log(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
 
-                await sqlDB.run(`DELETE FROM ${apireq.tb} WHERE ${sqlString.where};`);
+                await sqlDB.run(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
                 resolve({
-                    [apireq.tb as string]: apireq.wr,
+                    [apireq.table as string]: apireq.where,
                 });
             } catch (error) {
                 reject(error);
@@ -377,17 +402,17 @@ export class StorageService {
      * @param apireq
      * @returns
      */
-    private sqlConvert(method: string, apireq: UteApis): UteQueryStrings {
-        let clearSTObject: any = apireq.st && !Array.isArray(apireq.st) ? JSON.parse(JSON.stringify(apireq.st)) : null;
+    private sqlConvert(method: string, apireq: UteApis, refColumns?: any[]): UteQueryStrings {
+        let clearSTObject: any = apireq.select && !Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : null;
         if (clearSTObject) {
             delete clearSTObject.id;
             delete clearSTObject.sysData;
         }
-        let clearSTArray: any = apireq.st && Array.isArray(apireq.st) ? JSON.parse(JSON.stringify(apireq.st)) : null;
+        let clearSTArray: any = apireq.select && Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : null;
 
-        let selectString: string = clearSTArray ? clearSTArray.join(", ") : clearSTArray === "COUNT" ? "COUNT(*)" : "*";
+        let selectString: string = clearSTArray ? clearSTArray.join(", ") : clearSTArray === UteQuerySysParams.cou ? `${UteQuerySysParams.cou}(*)` : "*";
         let insertString: string = clearSTObject
-            ? `(${Object.keys(clearSTObject).join(", ")}) VALUES (${Object.values(clearSTObject)
+            ? `(${Object.keys(clearSTObject).join(", ")}) ${UteQuerySysParams.val} (${Object.values(clearSTObject)
                   .map((st: any) => (typeof st === "string" ? `'${st}'` : st))
                   .join(", ")})`
             : "";
@@ -396,7 +421,7 @@ export class StorageService {
                   .map((st: any) => `${st} = ${typeof clearSTObject[st] === "string" ? `'${clearSTObject[st]}'` : clearSTObject[st]}`)
                   .join(", ")}`
             : "";
-        let whereString: string = apireq.wr ? this.buildSQL(apireq.wr) : "";
+        let whereString: string = apireq.where ? this.buildSQL(apireq.where) : "";
 
         switch (method) {
             case "POST":
@@ -426,13 +451,8 @@ export class StorageService {
      * @returns
      */
     private convertToSQL(obj: any) {
-        // console.log(obj);
-
         let operator = Object.keys(obj)[0];
-        // console.log(operator);
-
         const conditions = obj[operator].map((conditionObj: any) => {
-            // console.log(conditionObj);
             if (typeof conditionObj === "object") {
                 const innerKey = Object.keys(conditionObj)[0];
 
@@ -459,8 +479,6 @@ export class StorageService {
         const topLevelConditions = [];
 
         for (let key in data) {
-            // console.log(data[key]);
-
             if (Array.isArray(data[key])) {
                 const subConditions = data[key].map((subObj: any) => {
                     if (Array.isArray(subObj[Object.keys(subObj)[0]])) {
@@ -479,17 +497,11 @@ export class StorageService {
                 }
             } else if (typeof data[key] === "object") {
                 let sub: any = this.buildSQL(data[key]);
-                // console.log(sub);
-
-                // if () {
                 topLevelConditions.push(`${key} ${sub}`);
-                // } else {
-                // return this.convertToSQL({ [key]: [subObj] });
             } else {
                 topLevelConditions.push(`${key} = '${data[key]}'`);
             }
         }
-        // console.log(topLevelConditions);
 
         return topLevelConditions.join();
     }
