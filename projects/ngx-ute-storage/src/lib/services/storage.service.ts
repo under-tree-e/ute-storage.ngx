@@ -8,7 +8,7 @@ import { HttpClient } from "@angular/common/http";
 import { v4 } from "uuid";
 import { UteApis } from "@interfaces/api";
 import { UteObjects } from "@interfaces/object";
-import { UteQueryStrings, UteQuerySysParams } from "@interfaces/query";
+import { UteQueryStrings, UteQuerySysParams, UteQueryWRParams } from "@interfaces/query";
 import * as fs from "fs";
 
 @Injectable({
@@ -402,46 +402,126 @@ export class StorageService {
      * @param apireq
      * @returns
      */
-    private sqlConvert(method: string, apireq: UteApis, refColumns?: any[]): UteQueryStrings {
-        let clearSTObject: any = apireq.select && !Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : null;
-        if (clearSTObject) {
-            delete clearSTObject.id;
-            delete clearSTObject.sysData;
-        }
-        let clearSTArray: any = apireq.select && Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : null;
+    private sqlConvert(method: string, apireq: UteApis, refs: UteObjects | null = null): UteQueryStrings {
+        apireq.noref ? (refs = null) : null;
+        let selectArray: any = apireq.select && Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : apireq.select;
 
-        let selectString: string = clearSTArray ? clearSTArray.join(", ") : clearSTArray === UteQuerySysParams.cou ? `${UteQuerySysParams.cou}(*)` : "*";
-        let insertString: string = clearSTObject
-            ? `(${Object.keys(clearSTObject).join(", ")}) ${UteQuerySysParams.val} (${Object.values(clearSTObject)
-                  .map((st: any) => (typeof st === "string" ? `'${st}'` : st))
-                  .join(", ")})`
-            : "";
-        let updateString: string = clearSTObject
-            ? `${Object.keys(clearSTObject)
-                  .map((st: any) => `${st} = ${typeof clearSTObject[st] === "string" ? `'${clearSTObject[st]}'` : clearSTObject[st]}`)
-                  .join(", ")}`
-            : "";
-        let whereString: string = apireq.where ? this.buildSQL(apireq.where) : "";
+        if (typeof selectArray === "object" && typeof selectArray != "string") {
+            if (method === ("POST" || "PUT")) {
+                delete selectArray.id;
+                delete selectArray.sysData;
+            }
+        }
+
+        let stringSelect = (): string => {
+            return this.genSelect(selectArray, apireq, refs).join(", ");
+        };
+
+        let stringInsert = (): string => {
+            return selectArray
+                ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
+                      .map((st: any) => (typeof st === "string" ? `'${st}'` : st))
+                      .join(", ")})`
+                : "";
+        };
+
+        let stringUpdate = (): string => {
+            return selectArray
+                ? `${Object.keys(selectArray)
+                      .map((st: any) => `${st} = ${typeof selectArray[st] === "string" ? `'${selectArray[st]}'` : selectArray[st]}`)
+                      .join(", ")}`
+                : "";
+        };
+
+        let stringWhere = (): string => {
+            return apireq.where ? this.genWhere(apireq.where) : "";
+        };
 
         switch (method) {
             case "POST":
                 return {
-                    insert: insertString,
+                    insert: stringInsert(),
                 };
             case "PUT":
                 return {
-                    update: updateString,
-                    where: whereString,
+                    update: stringUpdate(),
+                    where: stringWhere(),
                 };
             case "DELETE":
                 return {
-                    where: whereString,
+                    where: stringWhere(),
                 };
             default:
                 return {
-                    select: selectString,
-                    where: whereString,
+                    select: stringSelect(),
+                    where: stringWhere(),
                 };
+        }
+    }
+
+    /**
+     *
+     * @param select
+     * @param apireq
+     * @param refs
+     * @returns
+     */
+    private genSelect(select: any, apireq: UteApis, refs: any): string[] {
+        if (!select) {
+            select = refs ? [...[`${apireq.table}.*`], ...this.genRefs(refs)] : ["*"];
+        } else {
+            if (Array.isArray(select)) {
+                if (refs) {
+                    select = select.map((sa: string) => {
+                        sa = `${apireq.table}.${sa}`;
+                        return sa;
+                    });
+                    if (refs != "refs") {
+                        select = [...select, ...this.genRefs(refs)];
+                    }
+                }
+            } else if (typeof select === "string" && select.toLowerCase() === "count") {
+                select = [`${UteQuerySysParams.cou}(*)`];
+            } else if (typeof select === "object") {
+                let newSelect: string[] = [];
+                Object.values(select).map((stv: any, istv: number) => {
+                    let table: string = Object.keys(select)[istv];
+                    if (table === apireq.table) {
+                        newSelect = [...newSelect, ...this.genSelect(stv, { table: table, select: stv }, "refs")];
+                    } else {
+                        newSelect = [...newSelect, ...this.genRefs(refs, { table: table, value: stv })];
+                    }
+                });
+                select = newSelect;
+            } else {
+                select = ["*"];
+            }
+        }
+        return select;
+    }
+
+    /**
+     *
+     * @param refs
+     * @param filter
+     * @returns
+     */
+    private genRefs(refs: any, filter?: { table: string; value: string[] }): string[] {
+        if (refs) {
+            let refsArray: string[] = [];
+            if (filter) {
+                refsArray = refs[filter.table]
+                    .filter((rf: string) => filter.value.some((fl: string) => fl === rf))
+                    .map((rv: string) => `${filter.table}.${rv} ${UteQuerySysParams.as} ${filter.table}_${rv}`);
+            } else {
+                Object.values<string[]>(refs).map((rc: string[], irc: number) => {
+                    let table: string = Object.keys(refs)[irc];
+                    refsArray = rc.map((rv: string) => `${table}.${rv} ${UteQuerySysParams.as} ${table}_${rv}`);
+                });
+            }
+            return refsArray;
+        } else {
+            return [];
         }
     }
 
@@ -458,7 +538,7 @@ export class StorageService {
 
                 const innerValue = conditionObj[innerKey];
                 if (typeof innerValue === "object") {
-                    return `${innerKey} ${this.buildSQL(innerValue)}`;
+                    return `${innerKey} ${this.genWhere(innerValue)}`;
                 } else {
                     return `${innerKey} = ${typeof innerValue === "string" ? `'${innerValue}'` : innerValue}`;
                 }
@@ -475,7 +555,7 @@ export class StorageService {
      * @param data
      * @returns
      */
-    private buildSQL(data: any) {
+    private genWhere(data: any) {
         const topLevelConditions = [];
 
         for (let key in data) {
@@ -488,15 +568,15 @@ export class StorageService {
                     }
                 });
 
-                if (key === "BETWEEN") {
-                    topLevelConditions.push(`${key} ${subConditions.join(` AND `)}`);
-                } else if (key === "IN") {
+                if (key === UteQueryWRParams.bet) {
+                    topLevelConditions.push(`${key} ${subConditions.join(` ${UteQueryWRParams.and} `)}`);
+                } else if (key === UteQueryWRParams.in) {
                     topLevelConditions.push(`${key} (${subConditions.join(`, `)})`);
                 } else {
                     topLevelConditions.push(subConditions.join(` ${key} `));
                 }
             } else if (typeof data[key] === "object") {
-                let sub: any = this.buildSQL(data[key]);
+                let sub: any = this.genWhere(data[key]);
                 topLevelConditions.push(`${key} ${sub}`);
             } else {
                 topLevelConditions.push(`${key} = '${data[key]}'`);

@@ -61,6 +61,7 @@ export enum UteQuerySysParams {
     drt = "DROP TABLE",
     alt = "ALTER TABLE",
     ret = "RENAME TO",
+    as = "AS",
 
     sel = "SELECT",
     cou = "COUNT",
