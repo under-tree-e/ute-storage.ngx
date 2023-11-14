@@ -1,4 +1,4 @@
-import { UteObjects } from "@interfaces/object";
+import { UteObjects } from "./object";
 
 /**
  * Ute Storage API Query

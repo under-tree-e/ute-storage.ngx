@@ -1,6 +1,6 @@
 import { ModuleWithProviders, NgModule } from "@angular/core";
-import { StorageService } from "@services/storage.service";
-import { UteModuleConfigs } from "@interfaces/config";
+import { StorageService } from "./services/storage.service";
+import { UteModuleConfigs } from "./interfaces/config";
 
 /**
  * The main module of SQL Storage library. Example usage:
