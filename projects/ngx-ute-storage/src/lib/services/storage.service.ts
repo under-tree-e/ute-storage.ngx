@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import { UteModuleConfigs } from "../interfaces/config";
 import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult } from "@capacitor-community/sqlite";
@@ -12,36 +12,27 @@ import { UteQuerySysParams } from "../interfaces/query";
 import { HttpService } from "./http.service";
 // import { fs } from "file-system";
 
-@Injectable({
-    providedIn: "root",
-})
+@Injectable()
 export class StorageService {
     private sqlite: SQLiteConnection = {} as SQLiteConnection;
     private sqlitePlugin: any = null;
     private defaultDB: string = "";
     private platform: string = Capacitor.getPlatform();
     private requestDB: string = this.defaultDB;
+    private config: UteModuleConfigs = {} as UteModuleConfigs;
 
-    @Inject("config") private config: UteModuleConfigs = {} as UteModuleConfigs;
-
-    constructor(private http: HttpClient, private httpService: HttpService) {
-        if (!this.config) {
-            throw Error(`Empty config params`);
-        } else {
-            this.defaultDB = this.config.name;
-
-            if (!this.config.sync) {
-                this.initialize();
-            }
-        }
-    }
+    constructor(private http: HttpClient, private httpService: HttpService) {}
 
     /**
      * Initialization module
      * @returns boolean result
      */
-    public initialize() {
+    public initialize(config: UteModuleConfigs) {
         return new Promise(async (resolve, reject) => {
+            if (config) {
+                this.config = config;
+                this.defaultDB = this.config.name;
+            }
             try {
                 this.sqlitePlugin = CapacitorSQLite;
                 this.sqlite = new SQLiteConnection(this.sqlitePlugin);

@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "description": "Angular storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "scripts": {
-    "start": "ng serve",
     "build": "ng build",
     "fix": "npm audit fix --force",
     "update": "ncu --upgrade && npm i --force && npm run fix",

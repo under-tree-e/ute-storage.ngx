@@ -1,9 +1,11 @@
 import { ModuleWithProviders, NgModule } from "@angular/core";
-import { StorageService } from "./services/storage.service";
 import { UteModuleConfigs } from "./interfaces/config";
+import { InjectService } from "./services/inject.service";
 
 /**
- * The main module of SQL Storage library. Example usage:
+ * The main module of SQL Storage library.</br>
+ *
+ * Example autoload usage:
  *
  * ```typescript
  * import { NgxUteStorageModule } from 'ngx-ute-storage';
@@ -21,6 +23,18 @@ import { UteModuleConfigs } from "./interfaces/config";
  * class AppModule {}
  * ```
  *
+ * Example manual load usage:
+ *
+ * ```typescript
+ * import { StorageService } from 'ngx-ute-storage';
+ *
+ * StorageService.initialize({
+ *      name: "DB",
+ *      db: "assets/databases/",
+ *      model: "src/interfaces/models/",
+ * } as UteModuleConfigs);
+ * ```
+ *
  */
 @NgModule({
     declarations: [],
@@ -34,18 +48,12 @@ export class NgxUteStorageModule {
      * - name: `string`</br>
      * - db?: `string`</br>
      * - model?: `string`</br>
-     * - sync?: `boolean`</br>
-     *
-     * If `sync: true` Use example code to init storage:
-     * @example
-     * StorageService.initialize();
-     *
      * @returns
      */
     static forRoot(config: UteModuleConfigs): ModuleWithProviders<NgxUteStorageModule> {
         return {
             ngModule: NgxUteStorageModule,
-            providers: [StorageService, { provide: "config", useValue: config }],
+            providers: [InjectService, { provide: "config", useValue: config }],
         };
     }
 }

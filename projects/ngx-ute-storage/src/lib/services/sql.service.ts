@@ -3,9 +3,7 @@ import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
 import { UteQueryStrings, UteQuerySysParams, UteQueryWRParams } from "../interfaces/query";
 
-@Injectable({
-    providedIn: "root",
-})
+@Injectable()
 export class SqlService {
     constructor() {}
 
