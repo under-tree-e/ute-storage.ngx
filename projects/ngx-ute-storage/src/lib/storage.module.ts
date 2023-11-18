@@ -1,6 +1,6 @@
 import { ModuleWithProviders, NgModule } from "@angular/core";
-import { UteModuleConfigs } from "./interfaces/config";
-import { InjectService } from "./services/inject.service";
+import { UteStorageConfigs } from "./interfaces/config";
+import { StorageService } from "./services/storage.service";
 
 /**
  * The main module of SQL Storage library.</br>
@@ -17,7 +17,7 @@ import { InjectService } from "./services/inject.service";
  *              db: "assets/databases/",
  *              model: "src/interfaces/models/",
  *              sync: false
- *          } as UteModuleConfigs)
+ *          } as UteStorageConfigs)
  *      ]
  * })
  * class AppModule {}
@@ -32,7 +32,7 @@ import { InjectService } from "./services/inject.service";
  *      name: "DB",
  *      db: "assets/databases/",
  *      model: "src/interfaces/models/",
- * } as UteModuleConfigs);
+ * } as UteStorageConfigs);
  * ```
  *
  */
@@ -43,17 +43,17 @@ import { InjectService } from "./services/inject.service";
 })
 export class NgxUteStorageModule {
     /**
-     * @param config - Ute Storage Configs Params `(UteModuleConfigs)`:
+     * @param config - Ute Storage Configs Params `(UteStorageConfigs)`:
      *
      * - name: `string`</br>
      * - db?: `string`</br>
      * - model?: `string`</br>
      * @returns
      */
-    static forRoot(config: UteModuleConfigs): ModuleWithProviders<NgxUteStorageModule> {
+    static forRoot(config?: UteStorageConfigs): ModuleWithProviders<NgxUteStorageModule> {
         return {
             ngModule: NgxUteStorageModule,
-            providers: [InjectService, { provide: "config", useValue: config }],
+            providers: [StorageService, { provide: "UteStorageConfig", useValue: config }],
         };
     }
 }

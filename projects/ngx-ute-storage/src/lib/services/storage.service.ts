@@ -1,6 +1,6 @@
-import { Injectable } from "@angular/core";
+import { Inject, Injectable } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
-import { UteModuleConfigs } from "../interfaces/config";
+import { UteStorageConfigs } from "../interfaces/config";
 import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult } from "@capacitor-community/sqlite";
 import { defineCustomElements as jeepSqlite } from "jeep-sqlite/loader";
 import { lastValueFrom } from "rxjs";
@@ -10,29 +10,47 @@ import { UteObjects } from "../interfaces/object";
 import { UteQuerySysParams } from "../interfaces/query";
 // import * as fs from "fs";
 import { HttpService } from "./http.service";
+import { UteStorageModels } from "../interfaces/model";
 // import { fs } from "file-system";
 
-@Injectable()
+@Injectable({
+    providedIn: "root",
+})
 export class StorageService {
     private sqlite: SQLiteConnection = {} as SQLiteConnection;
     private sqlitePlugin: any = null;
     private defaultDB: string = "";
     private platform: string = Capacitor.getPlatform();
     private requestDB: string = this.defaultDB;
-    private config: UteModuleConfigs = {} as UteModuleConfigs;
+    // private models:
 
-    constructor(private http: HttpClient, private httpService: HttpService) {}
+    constructor(@Inject("UteStorageConfig") private config: UteStorageConfigs, private http: HttpClient, private httpService: HttpService) {
+        // if (!this.config) {
+        //     throw Error(`Empty config params`);
+        // } else {
+        //     this.defaultDB = this.config.name;
+        //     this.Init();
+        // }
+        if (this.config) {
+            this.defaultDB = this.config.name;
+            this.Init();
+        }
+    }
 
     /**
      * Initialization module
      * @returns boolean result
      */
-    public initialize(config: UteModuleConfigs) {
+    public Init(config?: UteStorageConfigs) {
+        console.log(`${new Date().toISOString()} => StorageService`);
+        // console.log("StorageService");
+
+        if (config) {
+            this.config = config;
+            this.defaultDB = this.config.name;
+        }
+
         return new Promise(async (resolve, reject) => {
-            if (config) {
-                this.config = config;
-                this.defaultDB = this.config.name;
-            }
             try {
                 this.sqlitePlugin = CapacitorSQLite;
                 this.sqlite = new SQLiteConnection(this.sqlitePlugin);
@@ -72,10 +90,14 @@ export class StorageService {
                     console.log("Storage Updates Start");
                 }
 
-                let models: any = await lastValueFrom(this.http.get("assets/databases/models.json?v=" + Date.now()));
-                console.log(models);
-
-                models = await lastValueFrom(this.http.get(`${this.config.model ? this.config.model : "src/interfaces/models/"}`));
+                let models: any = {};
+                if (typeof this.config.models === "string") {
+                    models = await lastValueFrom(this.http.get(`${this.config.models}?v=` + Date.now()));
+                } else if (typeof this.config.models === "object") {
+                    models = this.config.models;
+                } else {
+                    models = await lastValueFrom(this.http.get("assets/databases/models.json?v=" + Date.now()));
+                }
                 console.log(models);
 
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
@@ -151,10 +173,11 @@ export class StorageService {
                     await this.closeConnection(this.defaultDB);
                 }
 
-                let databasesFile: UteObjects<any> = await lastValueFrom(this.http.get(`${this.config.db ? this.config.db : "assets/databases/"}databases.json?v=` + Date.now()));
+                let databasesFile: UteObjects<any> = await lastValueFrom(this.http.get(`${this.config.db ? this.config.db : "assets/databases/databases.json"}?v=` + Date.now()));
+                console.log(databasesFile);
+
                 if (databasesFile) {
-                    let dbList: string[] = databasesFile["databases"];
-                    for (let dbName of dbList) {
+                    for (let dbName of databasesFile["databaseList"]) {
                         this.requestDB = dbName;
                         let isCurDB: boolean = await this.isDatabase(dbName);
                         if (!isCurDB) {

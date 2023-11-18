@@ -6,7 +6,9 @@ import { UteQueryStrings } from "../interfaces/query";
 import { SqlService } from "./sql.service";
 import { v4 } from "uuid";
 
-@Injectable()
+@Injectable({
+    providedIn: "root",
+})
 export class HttpService {
     private stMethod: typeof this.getSql | typeof this.postSql | typeof this.putSql | typeof this.deleteSql = null!;
 
