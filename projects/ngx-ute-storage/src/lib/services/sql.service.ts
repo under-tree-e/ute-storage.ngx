@@ -16,13 +16,15 @@ export class SqlService {
      * @returns
      */
     public sqlConvert(method: string, apireq: UteApis, refs: UteObjects | null = null): UteQueryStrings {
+        console.log(apireq);
+
         apireq.noref ? (refs = null) : null;
         let selectArray: any = apireq.select && Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : apireq.select;
 
         if (typeof selectArray === "object" && typeof selectArray != "string") {
             if (method === ("POST" || "PUT")) {
                 delete selectArray.id;
-                delete selectArray.sysData;
+                // delete selectArray.sysData;
             }
         }
 
@@ -47,7 +49,7 @@ export class SqlService {
         };
 
         let stringWhere = (): string => {
-            return apireq.where ? this.genWhere(apireq.where) : "";
+            return apireq.where ? this.genWhere(apireq.where, refs ? apireq.table : null) : "";
         };
 
         switch (method) {
@@ -143,7 +145,7 @@ export class SqlService {
      * @param obj
      * @returns
      */
-    private convertToSQL(obj: any) {
+    private convertToSQL(obj: any, refs: any) {
         let operator = Object.keys(obj)[0];
         const conditions = obj[operator].map((conditionObj: any) => {
             if (typeof conditionObj === "object") {
@@ -151,7 +153,7 @@ export class SqlService {
 
                 const innerValue = conditionObj[innerKey];
                 if (typeof innerValue === "object") {
-                    return `${innerKey} ${this.genWhere(innerValue)}`;
+                    return `${innerKey} ${this.genWhere(innerValue, refs)}`;
                 } else {
                     return `${innerKey} = ${typeof innerValue === "string" ? `'${innerValue}'` : innerValue}`;
                 }
@@ -168,16 +170,16 @@ export class SqlService {
      * @param data
      * @returns
      */
-    private genWhere(data: any) {
+    private genWhere(data: any, refs: any) {
         const topLevelConditions = [];
 
         for (let key in data) {
             if (Array.isArray(data[key])) {
                 const subConditions = data[key].map((subObj: any) => {
                     if (Array.isArray(subObj[Object.keys(subObj)[0]])) {
-                        return this.convertToSQL(subObj);
+                        return this.convertToSQL(subObj, refs);
                     } else {
-                        return this.convertToSQL({ [key]: [subObj] });
+                        return this.convertToSQL({ [key]: [subObj] }, refs);
                     }
                 });
 
@@ -189,10 +191,10 @@ export class SqlService {
                     topLevelConditions.push(subConditions.join(` ${key} `));
                 }
             } else if (typeof data[key] === "object") {
-                let sub: any = this.genWhere(data[key]);
-                topLevelConditions.push(`${key} ${sub}`);
+                let sub: any = this.genWhere(data[key], refs);
+                topLevelConditions.push(`${refs ? `${refs}.${key}` : key} ${sub}`);
             } else {
-                topLevelConditions.push(`${key} = '${data[key]}'`);
+                topLevelConditions.push(`${refs ? `${refs}.${key}` : key} = '${data[key]}'`);
             }
         }
 

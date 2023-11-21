@@ -62,4 +62,5 @@ export enum UteModelTypes {
 export enum UteModelDefaultValues {
     uuid = "@UUID4",
     date = "@DATE",
+    fiof = "@FIRSTOF",
 }

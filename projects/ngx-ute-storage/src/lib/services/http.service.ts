@@ -22,6 +22,18 @@ export class HttpService {
      * @returns object with array of request datas
      */
     public request(method: string, apireq: UteApis[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+        apireq = apireq.map((rq: any) => {
+            let newApi: UteApis = {
+                table: rq.tb,
+            };
+            rq.st ? (newApi.select = rq.st) : null;
+            rq.wr ? (newApi.where = rq.wr) : null;
+            rq.or ? (newApi.order = rq.or) : null;
+            rq.no ? (newApi.noref = rq.no) : null;
+            return newApi;
+        });
+        console.log(apireq);
+
         return new Promise(async (resolve, reject) => {
             switch (method) {
                 case "GET":
@@ -67,6 +79,8 @@ export class HttpService {
             try {
                 const queryPR: string = `PRAGMA foreign_key_list(${apireq.table});`;
                 let resultFK: any = await sqlDB.query(queryPR);
+                console.log(resultFK);
+
                 let refData: string = "";
                 let pragmaList: any = {};
 
@@ -80,6 +94,8 @@ export class HttpService {
                 }
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("GET", apireq, pragmaList);
+                console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
+
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
                 resolve({ [apireq.table as string]: result.values ? result.values : [] });
@@ -106,7 +122,7 @@ export class HttpService {
 
                 const queryPR: string = `PRAGMA table_info(${apireq.table});`;
                 let resultPR = await sqlDB.query(queryPR);
-                resultPR.values?.map((vl: any) => {
+                resultPR.values?.map(async (vl: any) => {
                     switch (vl.dflt_value) {
                         case "'@UUID4'":
                             apireq.select && !apireq.select[vl.name] ? (apireq.select[vl.name] = v4()) : null;

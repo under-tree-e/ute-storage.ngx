@@ -8,10 +8,7 @@ import { HttpClient } from "@angular/common/http";
 import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
 import { UteQuerySysParams } from "../interfaces/query";
-// import * as fs from "fs";
 import { HttpService } from "./http.service";
-import { UteStorageModels } from "../interfaces/model";
-// import { fs } from "file-system";
 
 @Injectable({
     providedIn: "root",
@@ -22,15 +19,8 @@ export class StorageService {
     private defaultDB: string = "";
     private platform: string = Capacitor.getPlatform();
     private requestDB: string = this.defaultDB;
-    // private models:
 
     constructor(@Inject("UteStorageConfig") private config: UteStorageConfigs, private http: HttpClient, private httpService: HttpService) {
-        // if (!this.config) {
-        //     throw Error(`Empty config params`);
-        // } else {
-        //     this.defaultDB = this.config.name;
-        //     this.Init();
-        // }
         if (this.config) {
             this.defaultDB = this.config.name;
             this.Init();
@@ -42,8 +32,8 @@ export class StorageService {
      * @returns boolean result
      */
     public Init(config?: UteStorageConfigs) {
-        console.log(`${new Date().toISOString()} => StorageService`);
-        // console.log("StorageService");
+        console.log("StorageService - Init");
+        // console.log(`${new Date().toISOString()} => StorageService - Init`);
 
         if (config) {
             this.config = config;
@@ -98,20 +88,10 @@ export class StorageService {
                 } else {
                     models = await lastValueFrom(this.http.get("assets/databases/models.json?v=" + Date.now()));
                 }
-                console.log(models);
 
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
                 if (!isMainDB || update) {
                     let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
-
-                    // let modelFiles: any = await fs.promises.readdir(`${this.config.model ? this.config.model : "src/interfaces/models/"}`);
-                    // let models: any = {};
-
-                    // for (let file of modelFiles) {
-                    //     let fileName: string = file.split(".")[0];
-                    //     let fileModel: any = fs.readFileSync(`${this.config.model ? this.config.model : "src/interfaces/models/"}`);
-                    //     models[fileName] = fileModel;
-                    // }
 
                     const tableNames = Object.keys(models);
 
@@ -147,7 +127,7 @@ export class StorageService {
                         createTableQueries.push(`${UteQuerySysParams.crt} ${UteQuerySysParams.ine} ${tableName} (${columnDefinitions.join(", ")});`);
 
                         if (update) {
-                            const queryPR: string = `${UteQuerySysParams.pra}(${tableName});`;
+                            const queryPR: string = `${UteQuerySysParams.pra} ${UteQuerySysParams.tbi}(${tableName});`;
                             let result = await sqlDB.query(queryPR);
 
                             if (result.values && result.values.length > 0) {
@@ -158,7 +138,7 @@ export class StorageService {
                                     .map((md: any) => md.name)
                                     .join(", ");
                                 createTableQueries.push(
-                                    `${UteQuerySysParams.ins} ${tableName}_new (${columnsString}) ${UteQuerySysParams.sel} ${columnsString} ${UteQuerySysParams.fro} ${tableName};`
+                                    `${UteQuerySysParams.irp} ${tableName}_new (${columnsString}) ${UteQuerySysParams.sel} ${columnsString} ${UteQuerySysParams.fro} ${tableName};`
                                 );
                                 createTableQueries.push(`${UteQuerySysParams.drt} ${tableName};`);
                                 createTableQueries.push(`${UteQuerySysParams.alt} ${tableName}_new ${UteQuerySysParams.ret} ${tableName};`);
@@ -166,15 +146,22 @@ export class StorageService {
                         }
                     }
 
-                    for (let query of createTableQueries) {
-                        await sqlDB.execute(query);
-                    }
+                    if (createTableQueries && createTableQueries.length > 0) {
+                        await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=off;`);
+                        // await sqlDB.query(`${UteQuerySysParams.bta};`);
+                        for (let query of createTableQueries) {
+                            console.log(query);
 
+                            // await sqlDB.query(query);
+                            await sqlDB.execute(query);
+                        }
+                        // await sqlDB.query(`${UteQuerySysParams.com};`);
+                        await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=on;`);
+                    }
                     await this.closeConnection(this.defaultDB);
                 }
 
                 let databasesFile: UteObjects<any> = await lastValueFrom(this.http.get(`${this.config.db ? this.config.db : "assets/databases/databases.json"}?v=` + Date.now()));
-                console.log(databasesFile);
 
                 if (databasesFile) {
                     for (let dbName of databasesFile["databaseList"]) {
@@ -351,14 +338,15 @@ export class StorageService {
                 reject(new Error(`not implemented for this platform: ${platform}`));
             }
             if (this.sqlite != null) {
-                try {
-                    await this.sqlite.saveToLocalDisk(this.defaultDB);
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
+                await this.dbConnect(this.defaultDB);
             } else {
                 reject(new Error(`no connection open for ${this.defaultDB}`));
+            }
+            try {
+                await this.sqlite.saveToLocalDisk(this.defaultDB);
+                resolve();
+            } catch (error) {
+                reject(error);
             }
         });
     }

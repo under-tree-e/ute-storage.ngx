@@ -48,7 +48,14 @@ export interface UteQueryStrings {
  * @prop whe: `WHERE`
  */
 export enum UteQuerySysParams {
-    pra = "PRAGMA table_info",
+    pra = "PRAGMA",
+    tbi = "table_info",
+    frk = "foreign_keys",
+
+    bta = "BEGIN TRANSACTION",
+
+    com = "COMMIT",
+
     prk = "PRIMARY KEY",
     aui = "AUTO_INCREMENT",
     non = "NOT NULL",
@@ -68,6 +75,7 @@ export enum UteQuerySysParams {
     fro = "FROM",
 
     ins = "INSERT INTO",
+    irp = "INSERT OR REPLACE INTO",
     set = "SET",
 
     inj = "INNER JOIN",
