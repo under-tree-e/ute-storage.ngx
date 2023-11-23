@@ -148,14 +148,9 @@ export class StorageService {
 
                     if (createTableQueries && createTableQueries.length > 0) {
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=off;`);
-                        // await sqlDB.query(`${UteQuerySysParams.bta};`);
                         for (let query of createTableQueries) {
-                            console.log(query);
-
-                            // await sqlDB.query(query);
                             await sqlDB.execute(query);
                         }
-                        // await sqlDB.query(`${UteQuerySysParams.com};`);
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=on;`);
                     }
                     await this.closeConnection(this.defaultDB);

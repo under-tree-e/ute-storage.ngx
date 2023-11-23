@@ -16,8 +16,6 @@ export class SqlService {
      * @returns
      */
     public sqlConvert(method: string, apireq: UteApis, refs: UteObjects | null = null): UteQueryStrings {
-        console.log(apireq);
-
         apireq.noref ? (refs = null) : null;
         let selectArray: any = apireq.select && Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : apireq.select;
 
@@ -153,9 +151,9 @@ export class SqlService {
 
                 const innerValue = conditionObj[innerKey];
                 if (typeof innerValue === "object") {
-                    return `${innerKey} ${this.genWhere(innerValue, refs)}`;
+                    return `${refs ? `${refs}.${innerKey}` : innerKey} ${this.genWhere(innerValue, refs)}`;
                 } else {
-                    return `${innerKey} = ${typeof innerValue === "string" ? `'${innerValue}'` : innerValue}`;
+                    return `${refs ? `${refs}.${innerKey}` : innerKey} = ${typeof innerValue === "string" ? `'${innerValue}'` : innerValue}`;
                 }
             } else {
                 return `'${conditionObj}'`;

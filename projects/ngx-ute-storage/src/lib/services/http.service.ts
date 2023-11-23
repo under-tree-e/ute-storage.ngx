@@ -32,7 +32,6 @@ export class HttpService {
             rq.no ? (newApi.noref = rq.no) : null;
             return newApi;
         });
-        console.log(apireq);
 
         return new Promise(async (resolve, reject) => {
             switch (method) {
@@ -79,26 +78,35 @@ export class HttpService {
             try {
                 const queryPR: string = `PRAGMA foreign_key_list(${apireq.table});`;
                 let resultFK: any = await sqlDB.query(queryPR);
-                console.log(resultFK);
 
                 let refData: string = "";
                 let pragmaList: any = {};
+                let pragmaTables: string[] = [];
 
                 if (resultFK.values.length > 0) {
                     for (let fk of resultFK.values) {
-                        refData += `INNER JOIN ${fk.table} ON ${fk.table}.${fk.to} = ${apireq.table}.${fk.from}`;
+                        refData += ` INNER JOIN ${fk.table} ON ${fk.table}.${fk.to} = ${apireq.table}.${fk.from}`;
                         const queryPRF: string = `PRAGMA table_info(${fk.table});`;
                         let result: any = await sqlDB.query(queryPRF);
                         pragmaList[fk.table] = result.values.map((vl: any) => vl.name);
+                        pragmaTables.push(fk.table);
                     }
                 }
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("GET", apireq, pragmaList);
-                console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
+                // console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
-                resolve({ [apireq.table as string]: result.values ? result.values : [] });
+                if (result.values && pragmaTables) {
+                    let newResult: UteObjects = this.convertToObjects(result.values, pragmaTables);
+                    resolve({ [apireq.table as string]: newResult });
+                } else if (result.values) {
+                    resolve({ [apireq.table as string]: result.values });
+                } else {
+                    resolve([]);
+                }
+                // resolve({ [apireq.table as string]: result.values ? result.values : [] });
             } catch (error) {
                 reject(error);
                 return;
@@ -203,5 +211,39 @@ export class HttpService {
                 return;
             }
         });
+    }
+
+    /**
+     *
+     * @param item
+     * @param tables
+     * @returns
+     */
+    private convertToObjects(item: UteObjects, tables: string[]) {
+        const newObject: UteObjects = {};
+
+        for (const key in item) {
+            let value: UteObjects = item[key];
+            let found: boolean = false;
+
+            for (const table of tables) {
+                if (key.includes(table)) {
+                    found = true;
+                    const newKey: string = key.replace(table, "").charAt(0).toLowerCase() + key.replace(table, "").slice(1);
+
+                    if (!newObject[table]) {
+                        newObject[table] = {};
+                    }
+
+                    newObject[table][newKey] = value;
+                }
+            }
+
+            if (!found) {
+                newObject[key] = value;
+            }
+        }
+
+        return newObject;
     }
 }
