@@ -219,31 +219,37 @@ export class HttpService {
      * @param tables
      * @returns
      */
-    private convertToObjects(item: UteObjects, tables: string[]) {
-        const newObject: UteObjects = {};
+    private convertToObjects(items: UteObjects[], tables: string[]) {
+        let newObjects: UteObjects[] = [];
 
-        for (const key in item) {
-            let value: UteObjects = item[key];
-            let found: boolean = false;
+        items.map((item: UteObjects) => {
+            let newObject: UteObjects = {};
 
-            for (const table of tables) {
-                if (key.includes(table)) {
-                    found = true;
-                    const newKey: string = key.replace(table, "").charAt(0).toLowerCase() + key.replace(table, "").slice(1);
+            for (const key in item) {
+                let value: UteObjects = item[key];
+                let found: boolean = false;
 
-                    if (!newObject[table]) {
-                        newObject[table] = {};
+                for (const table of tables) {
+                    if (key.includes(table)) {
+                        found = true;
+                        const newKey: string = key.replace(table, "").charAt(0).toLowerCase() + key.replace(table, "").slice(1);
+
+                        if (!newObject[table]) {
+                            newObject[table] = {};
+                        }
+
+                        newObject[table][newKey] = value;
                     }
+                }
 
-                    newObject[table][newKey] = value;
+                if (!found) {
+                    newObject[key] = value;
                 }
             }
 
-            if (!found) {
-                newObject[key] = value;
-            }
-        }
+            newObjects.push(newObject);
+        });
 
-        return newObject;
+        return newObjects;
     }
 }
