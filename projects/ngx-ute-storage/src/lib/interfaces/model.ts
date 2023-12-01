@@ -33,22 +33,22 @@ export interface UteStorageModels {
     defaultValue?: UteModelDefaultValues | number | string;
     /**
      * Name of table & column to assotiation beetwen tables
-     * @example "Table.Column"
+     * @example "{ models: 'Table', key: 'Column' }"
      */
-    references?: string;
+    references?: { model: string; key: string };
 }
 
 /**
  * Ute Storage Models Type enum
  * @prop int: `INTERGER`
- * @prop var: `VARCHAR(255)`
+ * @prop str: `STRING`
  * @prop bool: `BOOLEAN`
  * @prop date: `DATE`
  * @prop text: `TEXT`
  */
 export enum UteModelTypes {
     int = "INTERGER",
-    var = "VARCHAR(255)",
+    str = "STRING",
     bool = "BOOLEAN",
     date = "DATE",
     text = "TEXT",

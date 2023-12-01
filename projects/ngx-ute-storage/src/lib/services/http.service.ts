@@ -94,19 +94,23 @@ export class HttpService {
                 }
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("GET", apireq, pragmaList);
+
                 // console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
                 if (result.values && pragmaTables) {
                     let newResult: UteObjects = this.convertToObjects(result.values, pragmaTables);
-                    resolve({ [apireq.table as string]: newResult });
+                    if (sqlString.select?.includes("COUNT")) {
+                        resolve({ [apireq.table as string]: newResult[0] });
+                    } else {
+                        resolve({ [apireq.table as string]: newResult });
+                    }
                 } else if (result.values) {
                     resolve({ [apireq.table as string]: result.values });
                 } else {
                     resolve([]);
                 }
-                // resolve({ [apireq.table as string]: result.values ? result.values : [] });
             } catch (error) {
                 reject(error);
                 return;
@@ -226,24 +230,28 @@ export class HttpService {
             let newObject: UteObjects = {};
 
             for (const key in item) {
-                let value: UteObjects = item[key];
-                let found: boolean = false;
+                if (key === "COUNT(*)") {
+                    newObject = item[key];
+                } else {
+                    let value: UteObjects = item[key];
+                    let found: boolean = false;
 
-                for (const table of tables) {
-                    if (key.includes(table)) {
-                        found = true;
-                        const newKey: string = key.replace(table, "").charAt(0).toLowerCase() + key.replace(table, "").slice(1);
+                    for (const table of tables) {
+                        if (key.includes(table)) {
+                            found = true;
+                            const newKey: string = key.replace(table, "").charAt(0).toLowerCase() + key.replace(table, "").slice(1);
 
-                        if (!newObject[table]) {
-                            newObject[table] = {};
+                            if (!newObject[table]) {
+                                newObject[table] = {};
+                            }
+
+                            newObject[table][newKey] = value;
                         }
-
-                        newObject[table][newKey] = value;
                     }
-                }
 
-                if (!found) {
-                    newObject[key] = value;
+                    if (!found) {
+                        newObject[key] = value;
+                    }
                 }
             }
 

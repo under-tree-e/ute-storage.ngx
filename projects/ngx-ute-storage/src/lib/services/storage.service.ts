@@ -9,6 +9,7 @@ import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
 import { UteQuerySysParams } from "../interfaces/query";
 import { HttpService } from "./http.service";
+import { UteModelTypes } from "../interfaces/model";
 
 @Injectable({
     providedIn: "root",
@@ -103,13 +104,14 @@ export class StorageService {
                         let columnDefinitions = Object.keys(tableDefinition).map((columnName) => {
                             const columnDefinition: any = tableDefinition[columnName];
 
-                            const columnType: string = ` ${columnDefinition.type}`;
+                            const columnType: string = ` ${columnDefinition.type === UteModelTypes.str ? "VARCHAR(255)" : columnDefinition.type}`;
                             const primaryKey: string = columnDefinition.primaryKey ? ` ${UteQuerySysParams.prk}` : "";
                             const autoIncrement: string = columnDefinition.autoIncrement ? ` ${UteQuerySysParams.aui}` : "";
                             const allowNull: string = columnDefinition.allowNull === undefined || columnDefinition.allowNull ? "" : ` ${UteQuerySysParams.non}`;
-                            const references: string = columnDefinition.references
-                                ? `${UteQuerySysParams.fok} (${columnName}) ${UteQuerySysParams.ref} ${columnDefinition.references.replace(".", "(")})`
-                                : "";
+                            const references: string =
+                                columnDefinition.references && columnDefinition.references.model && columnDefinition.references.key
+                                    ? `${UteQuerySysParams.fok} (${columnName}) ${UteQuerySysParams.ref} ${columnDefinition.references.model}(${columnDefinition.references.key})`
+                                    : "";
                             if (references) {
                                 tableRefences.push(references);
                             }
