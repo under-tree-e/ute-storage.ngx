@@ -5,6 +5,7 @@ import { UteObjects } from "../interfaces/object";
 import { UteQueryStrings } from "../interfaces/query";
 import { SqlService } from "./sql.service";
 import { v4 } from "uuid";
+import { ApiConst } from "../contantes/api";
 
 @Injectable({
     providedIn: "root",
@@ -22,16 +23,33 @@ export class HttpService {
      * @returns object with array of request datas
      */
     public request(method: string, apireq: UteApis[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+        console.log("apireq 1", apireq);
+
         apireq = apireq.map((rq: any) => {
-            let newApi: UteApis = {
-                table: rq.tb,
-            };
-            rq.st ? (newApi.select = rq.st) : null;
-            rq.wr ? (newApi.where = rq.wr) : null;
-            rq.or ? (newApi.order = rq.or) : null;
-            rq.no ? (newApi.noref = rq.no) : null;
-            return newApi;
+            let newObject = Object.entries(rq).map(([key, value]) => {
+                let newKey: string = key;
+                Object.keys(ApiConst).map((apiKey: string, i: number) => {
+                    if (apiKey === key) {
+                        newKey = Object.values(ApiConst)[i];
+                    }
+                });
+                return [newKey, value];
+            });
+            return Object.fromEntries(newObject);
         });
+
+        console.log("apireq 2", apireq);
+
+        // apireq = apireq.map((rq: any) => {
+        //     let newApi: UteApis = {
+        //         table: rq.tb,
+        //     };
+        //     rq.st ? (newApi.select = rq.st) : null;
+        //     rq.wr ? (newApi.where = rq.wr) : null;
+        //     rq.or ? (newApi.order = rq.or) : null;
+        //     rq.no ? (newApi.noref = rq.no) : null;
+        //     return newApi;
+        // });
 
         return new Promise(async (resolve, reject) => {
             switch (method) {

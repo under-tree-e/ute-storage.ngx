@@ -23,6 +23,7 @@ export class StorageService {
 
     constructor(@Inject("UteStorageConfig") private config: UteStorageConfigs, private http: HttpClient, private httpService: HttpService) {
         if (this.config) {
+            this.config.environment!.storage = this;
             this.defaultDB = this.config.name;
             this.Init();
         }
@@ -39,6 +40,7 @@ export class StorageService {
         if (config) {
             this.config = config;
             this.defaultDB = this.config.name;
+            this.config.environment!.storage = this;
         }
 
         return new Promise(async (resolve, reject) => {
@@ -177,6 +179,13 @@ export class StorageService {
         });
     }
 
+    /**
+     *
+     * @param method
+     * @param apireq
+     * @param dbName
+     * @returns
+     */
     public request(method: string, apireq: UteApis[], dbName?: string): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {

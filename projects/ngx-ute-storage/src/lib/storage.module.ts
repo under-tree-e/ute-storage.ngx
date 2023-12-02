@@ -48,6 +48,7 @@ export class NgxUteStorageModule {
      * - name: `string`</br>
      * - db?: `string`</br>
      * - model?: `string`</br>
+     * - environment?: `Object`
      * @returns
      */
     static forRoot(config?: UteStorageConfigs): ModuleWithProviders<NgxUteStorageModule> {

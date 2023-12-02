@@ -25,4 +25,8 @@ export interface UteStorageConfigs {
      * @defaultValue `assets/databases/model.json`
      */
     models?: string | UteObjects;
+    /**
+     * Source project environment file
+     */
+    environment: { storage: any } | any;
 }
