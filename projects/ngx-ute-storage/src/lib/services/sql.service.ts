@@ -33,7 +33,7 @@ export class SqlService {
         let stringInsert = (): string => {
             return selectArray
                 ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
-                      .map((st: any) => (typeof st === "string" ? `'${st}'` : st))
+                      .map((st: any) => (typeof st === "string" || st instanceof Date ? `'${st}'` : st))
                       .join(", ")})`
                 : "";
         };

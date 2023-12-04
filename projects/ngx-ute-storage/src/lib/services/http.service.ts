@@ -23,8 +23,6 @@ export class HttpService {
      * @returns object with array of request datas
      */
     public request(method: string, apireq: UteApis[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
-        console.log("apireq 1", apireq);
-
         apireq = apireq.map((rq: any) => {
             let newObject = Object.entries(rq).map(([key, value]) => {
                 let newKey: string = key;
@@ -37,19 +35,6 @@ export class HttpService {
             });
             return Object.fromEntries(newObject);
         });
-
-        console.log("apireq 2", apireq);
-
-        // apireq = apireq.map((rq: any) => {
-        //     let newApi: UteApis = {
-        //         table: rq.tb,
-        //     };
-        //     rq.st ? (newApi.select = rq.st) : null;
-        //     rq.wr ? (newApi.where = rq.wr) : null;
-        //     rq.or ? (newApi.order = rq.or) : null;
-        //     rq.no ? (newApi.noref = rq.no) : null;
-        //     return newApi;
-        // });
 
         return new Promise(async (resolve, reject) => {
             switch (method) {
@@ -94,20 +79,22 @@ export class HttpService {
     private getSql(apireq: UteApis, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
-                const queryPR: string = `PRAGMA foreign_key_list(${apireq.table});`;
-                let resultFK: any = await sqlDB.query(queryPR);
-
                 let refData: string = "";
                 let pragmaList: any = {};
                 let pragmaTables: string[] = [];
 
-                if (resultFK.values.length > 0) {
-                    for (let fk of resultFK.values) {
-                        refData += ` INNER JOIN ${fk.table} ON ${fk.table}.${fk.to} = ${apireq.table}.${fk.from}`;
-                        const queryPRF: string = `PRAGMA table_info(${fk.table});`;
-                        let result: any = await sqlDB.query(queryPRF);
-                        pragmaList[fk.table] = result.values.map((vl: any) => vl.name);
-                        pragmaTables.push(fk.table);
+                if (!apireq.noref) {
+                    const queryPR: string = `PRAGMA foreign_key_list(${apireq.table});`;
+                    let resultFK: any = await sqlDB.query(queryPR);
+
+                    if (resultFK.values.length > 0) {
+                        for (let fk of resultFK.values) {
+                            refData += ` LEFT JOIN ${fk.table} ON ${fk.table}.${fk.to} = ${apireq.table}.${fk.from}`;
+                            const queryPRF: string = `PRAGMA table_info(${fk.table});`;
+                            let result: any = await sqlDB.query(queryPRF);
+                            pragmaList[fk.table] = result.values.map((vl: any) => vl.name);
+                            pragmaTables.push(fk.table);
+                        }
                     }
                 }
 
@@ -164,6 +151,8 @@ export class HttpService {
                 });
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
+                // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
+
                 let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
                 resolve({
@@ -197,6 +186,8 @@ export class HttpService {
                 }
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
 
+                // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
+
                 await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 resolve({
@@ -223,6 +214,8 @@ export class HttpService {
                     return;
                 }
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("DELETE", apireq);
+
+                // console.log(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
 
                 await sqlDB.run(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
                 resolve({
@@ -252,12 +245,13 @@ export class HttpService {
                     newObject = item[key];
                 } else {
                     let value: UteObjects = item[key];
+
                     let found: boolean = false;
 
                     for (const table of tables) {
                         if (key.includes(table)) {
                             found = true;
-                            const newKey: string = key.replace(table, "").charAt(0).toLowerCase() + key.replace(table, "").slice(1);
+                            const newKey: string = key.replace(`${table}_`, "").charAt(0).toLowerCase() + key.replace(`${table}_`, "").slice(1);
 
                             if (!newObject[table]) {
                                 newObject[table] = {};
@@ -272,6 +266,20 @@ export class HttpService {
                     }
                 }
             }
+
+            const processObject = (obj: any) => {
+                for (const key in newObject) {
+                    if (typeof obj[key] === "object" && obj[key] !== null) {
+                        obj[key] = processObject(obj[key]);
+                    }
+                }
+
+                const allNull = Object.values(obj).every((value) => value === null);
+
+                return allNull ? null : obj;
+            };
+
+            newObject = processObject(newObject);
 
             newObjects.push(newObject);
         });
