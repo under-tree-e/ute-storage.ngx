@@ -41,7 +41,7 @@ export class SqlService {
         let stringUpdate = (): string => {
             return selectArray
                 ? `${Object.keys(selectArray)
-                      .map((st: any) => `${st} = ${typeof selectArray[st] === "string" ? `'${selectArray[st]}'` : selectArray[st]}`)
+                      .map((st: any) => `${st} = ${typeof selectArray[st] === "string" || selectArray[st] instanceof Date ? `'${selectArray[st]}'` : selectArray[st]}`)
                       .join(", ")}`
                 : "";
         };

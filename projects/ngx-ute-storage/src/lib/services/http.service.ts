@@ -151,6 +151,7 @@ export class HttpService {
                 });
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
+
                 // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
                 let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
