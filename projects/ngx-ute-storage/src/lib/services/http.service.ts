@@ -82,6 +82,9 @@ export class HttpService {
                 let refData: string = "";
                 let pragmaList: any = {};
                 let pragmaTables: string[] = [];
+                if (apireq.select && typeof apireq.select === "string" && apireq.select.includes("COUNT")) {
+                    apireq.noref = true;
+                }
 
                 if (!apireq.noref) {
                     const queryPR: string = `PRAGMA foreign_key_list(${apireq.table});`;
@@ -104,15 +107,15 @@ export class HttpService {
 
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
-                if (result.values && pragmaTables) {
+                if (result.values && pragmaTables && pragmaTables.length > 0) {
                     let newResult: UteObjects = this.convertToObjects(result.values, pragmaTables);
-                    if (sqlString.select?.includes("COUNT")) {
-                        resolve({ [apireq.table as string]: newResult[0] });
-                    } else {
-                        resolve({ [apireq.table as string]: newResult });
-                    }
+                    resolve({ [apireq.table as string]: newResult });
                 } else if (result.values) {
-                    resolve({ [apireq.table as string]: result.values });
+                    if (sqlString.select?.includes("COUNT")) {
+                        resolve({ [apireq.table as string]: result.values[0]["COUNT(*)"] });
+                    } else {
+                        resolve({ [apireq.table as string]: result.values });
+                    }
                 } else {
                     resolve([]);
                 }
@@ -142,10 +145,10 @@ export class HttpService {
                 resultPR.values?.map(async (vl: any) => {
                     switch (vl.dflt_value) {
                         case "'@UUID4'":
-                            apireq.select && !apireq.select[vl.name] ? (apireq.select[vl.name] = v4()) : null;
+                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = v4()) : null;
                             break;
                         case "'@DATE'":
-                            apireq.select && !apireq.select[vl.name] ? (apireq.select[vl.name] = new Date().toISOString()) : null;
+                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = new Date().toISOString()) : null;
                             break;
                     }
                 });
@@ -160,7 +163,7 @@ export class HttpService {
                     [apireq.table as string]:
                         result.changes && result.changes.lastId
                             ? {
-                                  ...apireq.select,
+                                  ...(apireq.select as UteObjects),
                                   ...{ id: result.changes.lastId },
                               }
                             : [],

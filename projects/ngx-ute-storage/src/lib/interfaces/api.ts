@@ -20,7 +20,7 @@ export interface UteApis {
      * @example { select: { table1: ["column1", "column2"] }, reftable: ["column1"] }
      * @example { select: { column1: value1, column2: value2 } }
      */
-    select?: string[] | UteObjects;
+    select?: string | string[] | UteObjects;
     /**
      * Where condition. Allows cond: `AND, NOT, OR, IN, NOT IN, BETWEEN, NOT BETWEEN, LIKE, NOT LIKE`
      * @example
