@@ -55,12 +55,36 @@ export class HttpService {
                     break;
             }
 
+            let mergeObjects = (obj1: any, obj2: any) => {
+                let result: any = {};
+
+                // Merge properties from obj1
+                Object.keys(obj1).forEach((key) => {
+                    if (Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
+                        result[key] = [...obj1[key], ...obj2[key]];
+                    } else {
+                        result[key] = obj1[key];
+                    }
+                });
+
+                // Merge properties from obj2 that are not in obj1
+                Object.keys(obj2).forEach((key) => {
+                    if (!obj1.hasOwnProperty(key)) {
+                        result[key] = obj2[key];
+                    }
+                });
+
+                return result;
+            };
+
             try {
                 let result: UteObjects = {};
                 for (let req of apireq) {
                     let storageResult: UteObjects = await this.stMethod(req, sqlDB);
-                    result = { ...result, ...storageResult };
+                    // result = { ...result, ...storageResult };
+                    result = mergeObjects(result, storageResult);
                 }
+                console.log("result", result);
 
                 resolve(result);
             } catch (error: any) {
@@ -159,13 +183,17 @@ export class HttpService {
 
                 let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
+                console.log(result);
+
                 resolve({
                     [apireq.table as string]:
                         result.changes && result.changes.lastId
-                            ? {
-                                  ...(apireq.select as UteObjects),
-                                  ...{ id: result.changes.lastId },
-                              }
+                            ? [
+                                  {
+                                      ...(apireq.select as UteObjects),
+                                      ...{ id: result.changes.lastId },
+                                  },
+                              ]
                             : [],
                 });
             } catch (error) {
