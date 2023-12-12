@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { DBSQLiteValues, SQLiteDBConnection } from "@capacitor-community/sqlite";
 import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
-import { UteQueryStrings } from "../interfaces/query";
+import { UteQueryStrings, UteQuerySysParams } from "../interfaces/query";
 import { SqlService } from "./sql.service";
 import { v4 } from "uuid";
 import { ApiConst } from "../contantes/api";
@@ -172,29 +172,21 @@ export class HttpService {
                             apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = v4()) : null;
                             break;
                         case "'@DATE'":
-                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = new Date().toISOString()) : null;
+                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = new Date()) : null;
                             break;
                     }
                 });
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
 
-                // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
+                console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
-                let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
+                let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert} ${UteQuerySysParams.ren} *;`);
 
                 console.log(result);
 
                 resolve({
-                    [apireq.table as string]:
-                        result.changes && result.changes.lastId
-                            ? [
-                                  {
-                                      ...(apireq.select as UteObjects),
-                                      ...{ id: result.changes.lastId },
-                                  },
-                              ]
-                            : [],
+                    [apireq.table as string]: result.values,
                 });
             } catch (error) {
                 reject(error);
@@ -220,7 +212,7 @@ export class HttpService {
 
                 // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
-                await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                await sqlDB.query(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 resolve({
                     [apireq.table as string]: apireq.select,
@@ -249,9 +241,9 @@ export class HttpService {
 
                 // console.log(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
 
-                await sqlDB.run(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
+                await sqlDB.query(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
                 resolve({
-                    [apireq.table as string]: apireq.where,
+                    [apireq.table as string]: [apireq.where],
                 });
             } catch (error) {
                 reject(error);

@@ -56,6 +56,8 @@ export enum UteQuerySysParams {
 
     com = "COMMIT",
 
+    unq = "UNIQUE",
+    ren = "RETURNING",
     prk = "PRIMARY KEY",
     aui = "AUTO_INCREMENT",
     non = "NOT NULL",

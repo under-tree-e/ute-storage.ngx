@@ -36,6 +36,10 @@ export interface UteStorageModels {
      * @example "{ models: 'Table', key: 'Column' }"
      */
     references?: { model: string; key: string };
+    /**
+     * Check if field unique in table `(Always use if field - REFERENCES & not PRIMARY KEY)`
+     */
+    unique?: boolean;
 }
 
 /**

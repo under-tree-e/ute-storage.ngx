@@ -79,21 +79,13 @@ export class StorageService {
     public migrate(update: boolean = false): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (update) {
-                    console.log("Storage Updates Start");
-                }
-
-                let models: any = {};
-                if (typeof this.config.models === "string") {
-                    models = await lastValueFrom(this.http.get(`${this.config.models}?v=` + Date.now()));
-                } else if (typeof this.config.models === "object") {
-                    models = this.config.models;
-                } else {
-                    models = await lastValueFrom(this.http.get("assets/databases/models.json?v=" + Date.now()));
-                }
+                let models: any = this.config.models;
 
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
+
                 if (!isMainDB || update) {
+                    console.log("Storage Build Start");
+
                     let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
 
                     const tableNames = Object.keys(models);
@@ -110,15 +102,16 @@ export class StorageService {
                             const primaryKey: string = columnDefinition.primaryKey ? ` ${UteQuerySysParams.prk}` : "";
                             const autoIncrement: string = columnDefinition.autoIncrement ? ` ${UteQuerySysParams.aui}` : "";
                             const allowNull: string = columnDefinition.allowNull === undefined || columnDefinition.allowNull ? "" : ` ${UteQuerySysParams.non}`;
+                            const unique: string = columnDefinition.unique ? ` ${UteQuerySysParams.unq}` : "";
                             const references: string =
                                 columnDefinition.references && columnDefinition.references.model && columnDefinition.references.key
-                                    ? `${UteQuerySysParams.fok} (${columnName}) ${UteQuerySysParams.ref} ${columnDefinition.references.model}(${columnDefinition.references.key})`
+                                    ? `${UteQuerySysParams.fok}(${columnName}) ${UteQuerySysParams.ref} ${columnDefinition.references.model}(${columnDefinition.references.key})`
                                     : "";
                             if (references) {
                                 tableRefences.push(references);
                             }
 
-                            let param: string = `${columnName}${columnType}${autoIncrement}${primaryKey}${allowNull}${
+                            let param: string = `${columnName}${columnType}${autoIncrement}${primaryKey}${allowNull}${unique}${
                                 columnDefinition.defaultValue != undefined ? ` ${UteQuerySysParams.def} '${columnDefinition.defaultValue}'` : ""
                             }`;
                             modelsData.push({ name: columnName, params: param });
@@ -153,7 +146,9 @@ export class StorageService {
                     if (createTableQueries && createTableQueries.length > 0) {
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=off;`);
                         for (let query of createTableQueries) {
-                            await sqlDB.execute(query);
+                            console.log(query);
+
+                            await sqlDB.query(query);
                         }
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=on;`);
                     }
