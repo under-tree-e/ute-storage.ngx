@@ -111,9 +111,10 @@ export class StorageService {
                                 tableRefences.push(references);
                             }
 
-                            let param: string = `${columnName}${columnType}${autoIncrement}${primaryKey}${allowNull}${unique}${
+                            let param: string = `${columnName}${columnType}${primaryKey}${autoIncrement}${allowNull}${unique}${
                                 columnDefinition.defaultValue != undefined ? ` ${UteQuerySysParams.def} '${columnDefinition.defaultValue}'` : ""
                             }`;
+
                             modelsData.push({ name: columnName, params: param });
                             return param;
                         });
@@ -146,8 +147,6 @@ export class StorageService {
                     if (createTableQueries && createTableQueries.length > 0) {
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=off;`);
                         for (let query of createTableQueries) {
-                            console.log(query);
-
                             await sqlDB.query(query);
                         }
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=on;`);

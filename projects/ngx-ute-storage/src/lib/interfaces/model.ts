@@ -44,14 +44,14 @@ export interface UteStorageModels {
 
 /**
  * Ute Storage Models Type enum
- * @prop int: `INTERGER`
+ * @prop int: `INTEGER`
  * @prop str: `STRING`
  * @prop bool: `BOOLEAN`
  * @prop date: `DATE`
  * @prop text: `TEXT`
  */
 export enum UteModelTypes {
-    int = "INTERGER",
+    int = "INTEGER",
     str = "STRING",
     bool = "BOOLEAN",
     date = "DATE",

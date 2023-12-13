@@ -179,15 +179,21 @@ export class HttpService {
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
 
-                console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
+                // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
-                let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert} ${UteQuerySysParams.ren} *;`);
+                let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert}`);
 
-                console.log(result);
+                result = await this.getSql(
+                    {
+                        table: apireq.table,
+                        where: {
+                            id: result.changes.lastId,
+                        },
+                    },
+                    sqlDB
+                );
 
-                resolve({
-                    [apireq.table as string]: result.values,
-                });
+                resolve(result);
             } catch (error) {
                 reject(error);
                 return;
@@ -212,7 +218,7 @@ export class HttpService {
 
                 // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
-                await sqlDB.query(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 resolve({
                     [apireq.table as string]: apireq.select,
@@ -241,7 +247,8 @@ export class HttpService {
 
                 // console.log(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
 
-                await sqlDB.query(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
+                await sqlDB.run(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
+
                 resolve({
                     [apireq.table as string]: [apireq.where],
                 });

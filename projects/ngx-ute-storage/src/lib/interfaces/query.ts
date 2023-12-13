@@ -59,7 +59,7 @@ export enum UteQuerySysParams {
     unq = "UNIQUE",
     ren = "RETURNING",
     prk = "PRIMARY KEY",
-    aui = "AUTO_INCREMENT",
+    aui = "AUTOINCREMENT",
     non = "NOT NULL",
     fok = "FOREIGN KEY",
     ref = "REFERENCES",
