@@ -216,7 +216,7 @@ export class HttpService {
                 }
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
 
-                console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
