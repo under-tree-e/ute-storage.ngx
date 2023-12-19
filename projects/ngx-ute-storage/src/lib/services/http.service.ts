@@ -81,10 +81,8 @@ export class HttpService {
                 let result: UteObjects = {};
                 for (let req of apireq) {
                     let storageResult: UteObjects = await this.stMethod(req, sqlDB);
-                    // result = { ...result, ...storageResult };
                     result = mergeObjects(result, storageResult);
                 }
-                console.log("result", result);
 
                 resolve(result);
             } catch (error: any) {
@@ -132,13 +130,13 @@ export class HttpService {
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
                 if (result.values && pragmaTables && pragmaTables.length > 0) {
-                    let newResult: UteObjects = this.convertToObjects(result.values, pragmaTables);
-                    resolve({ [apireq.table as string]: newResult });
+                    let newResult: UteObjects[] = this.convertToObjects(result.values, pragmaTables);
+                    resolve({ [apireq.table as string]: await this.boolConverter(apireq.table!, newResult, sqlDB, pragmaTables) });
                 } else if (result.values) {
                     if (sqlString.select?.includes("COUNT")) {
                         resolve({ [apireq.table as string]: result.values[0]["COUNT(*)"] });
                     } else {
-                        resolve({ [apireq.table as string]: result.values });
+                        resolve({ [apireq.table as string]: await this.boolConverter(apireq.table!, result.values, sqlDB) });
                     }
                 } else {
                     resolve([]);
@@ -267,7 +265,6 @@ export class HttpService {
      */
     private convertToObjects(items: UteObjects[], tables: string[]) {
         let newObjects: UteObjects[] = [];
-
         items.map((item: UteObjects) => {
             let newObject: UteObjects = {};
 
@@ -316,5 +313,34 @@ export class HttpService {
         });
 
         return newObjects;
+    }
+
+    private boolConverter(table: string, values: any[], sqlDB: SQLiteDBConnection, refs?: string[]): Promise<UteObjects> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const queryPR: string = `PRAGMA table_info(${table});`;
+                let resultPR: any = await sqlDB.query(queryPR);
+                resultPR.values.map((fr: any) => {
+                    if (fr.type === "BOOLEAN") {
+                        values = values.map((vl: any) => {
+                            if (vl[fr.name] != undefined) {
+                                vl[fr.name] = vl[fr.name] ? true : false;
+                            }
+                            if (refs && refs.length > 0) {
+                                refs.map(async (rf: string) => {
+                                    let array: any = await this.boolConverter(rf, [vl[rf]], sqlDB);
+                                    vl[rf] = array[0];
+                                });
+                            }
+                            return vl;
+                        });
+                    }
+                });
+
+                resolve(values);
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 }
