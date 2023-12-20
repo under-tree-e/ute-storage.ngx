@@ -22,7 +22,6 @@ export class SqlService {
         if (typeof selectArray === "object" && typeof selectArray != "string") {
             if (method === ("POST" || "PUT")) {
                 delete selectArray.id;
-                // delete selectArray.sysData;
             }
         }
 
@@ -33,7 +32,16 @@ export class SqlService {
         let stringInsert = (): string => {
             return selectArray
                 ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
-                      .map((st: any) => (typeof st === "string" || st instanceof Date ? `'${st}'` : st))
+                      .map((st: any) => {
+                          if (st) {
+                              if (typeof st === "string") {
+                                  st = `'${st}'`;
+                              } else if (st instanceof Date) {
+                                  st = `'${new Date(st).toISOString()}'`;
+                              }
+                          }
+                          return st;
+                      })
                       .join(", ")})`
                 : "";
         };
@@ -123,13 +131,15 @@ export class SqlService {
         if (refs) {
             let refsArray: string[] = [];
             if (filter) {
-                refsArray = refs[filter.table]
+                let array: string[] = refs[filter.table]
                     .filter((rf: string) => filter.value.some((fl: string) => fl === rf))
                     .map((rv: string) => `${filter.table}.${rv} ${UteQuerySysParams.as} ${filter.table}_${rv}`);
+                refsArray = [...refsArray, ...array];
             } else {
                 Object.values<string[]>(refs).map((rc: string[], irc: number) => {
                     let table: string = Object.keys(refs)[irc];
-                    refsArray = rc.map((rv: string) => `${table}.${rv} ${UteQuerySysParams.as} ${table}_${rv}`);
+                    let array: string[] = rc.map((rv: string) => `${table}.${rv} ${UteQuerySysParams.as} ${table}_${rv}`);
+                    refsArray = [...refsArray, ...array];
                 });
             }
             return refsArray;

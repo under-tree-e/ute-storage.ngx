@@ -131,12 +131,12 @@ export class HttpService {
 
                 if (result.values && pragmaTables && pragmaTables.length > 0) {
                     let newResult: UteObjects[] = this.convertToObjects(result.values, pragmaTables);
-                    resolve({ [apireq.table as string]: await this.boolConverter(apireq.table!, newResult, sqlDB, pragmaTables) });
+                    resolve({ [apireq.table as string]: await this.converter(apireq.table!, newResult, sqlDB, pragmaTables) });
                 } else if (result.values) {
                     if (sqlString.select?.includes("COUNT")) {
                         resolve({ [apireq.table as string]: result.values[0]["COUNT(*)"] });
                     } else {
-                        resolve({ [apireq.table as string]: await this.boolConverter(apireq.table!, result.values, sqlDB) });
+                        resolve({ [apireq.table as string]: await this.converter(apireq.table!, result.values, sqlDB) });
                     }
                 } else {
                     resolve([]);
@@ -170,7 +170,7 @@ export class HttpService {
                             apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = v4()) : null;
                             break;
                         case "'@DATE'":
-                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = new Date()) : null;
+                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = new Date().toISOString()) : null;
                             break;
                     }
                 });
@@ -315,7 +315,19 @@ export class HttpService {
         return newObjects;
     }
 
-    private boolConverter(table: string, values: any[], sqlDB: SQLiteDBConnection, refs?: string[]): Promise<UteObjects> {
+    private converter(table: string, values: any[], sqlDB: SQLiteDBConnection, refs?: string[]): Promise<UteObjects> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                values = await this.boolConverter(table, values, sqlDB, refs);
+                values = await this.dateConverter(table, values, sqlDB, refs);
+                resolve(values);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    private boolConverter(table: string, values: any[], sqlDB: SQLiteDBConnection, refs?: string[]): Promise<UteObjects[]> {
         return new Promise(async (resolve, reject) => {
             try {
                 const queryPR: string = `PRAGMA table_info(${table});`;
@@ -325,6 +337,35 @@ export class HttpService {
                         values = values.map((vl: any) => {
                             if (vl[fr.name] != undefined) {
                                 vl[fr.name] = vl[fr.name] ? true : false;
+                            }
+                            if (refs && refs.length > 0) {
+                                refs.map(async (rf: string) => {
+                                    let array: any = await this.boolConverter(rf, [vl[rf]], sqlDB);
+                                    vl[rf] = array[0];
+                                });
+                            }
+                            return vl;
+                        });
+                    }
+                });
+
+                resolve(values);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    private dateConverter(table: string, values: any[], sqlDB: SQLiteDBConnection, refs?: string[]): Promise<UteObjects[]> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const queryPR: string = `PRAGMA table_info(${table});`;
+                let resultPR: any = await sqlDB.query(queryPR);
+                resultPR.values.map((fr: any) => {
+                    if (fr.type === "DATE" || fr.type === "DATETIME") {
+                        values = values.map((vl: any) => {
+                            if (vl[fr.name] != undefined) {
+                                vl[fr.name] = vl[fr.name] ? new Date(vl[fr.name]) : null;
                             }
                             if (refs && refs.length > 0) {
                                 refs.map(async (rf: string) => {
