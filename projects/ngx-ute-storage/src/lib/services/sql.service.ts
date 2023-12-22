@@ -202,7 +202,11 @@ export class SqlService {
                 let sub: any = this.genWhere(data[key], refs);
                 topLevelConditions.push(`${refs ? `${refs}.${key}` : key} ${sub}`);
             } else {
-                topLevelConditions.push(`${refs ? `${refs}.${key}` : key} = '${data[key]}'`);
+                if (key === UteQueryWRParams.lik || key === UteQueryWRParams.likN) {
+                    topLevelConditions.push(`${key} '${data[key]}'`);
+                } else {
+                    topLevelConditions.push(`${refs ? `${refs}.${key}` : key} = '${data[key]}'`);
+                }
             }
         }
 
