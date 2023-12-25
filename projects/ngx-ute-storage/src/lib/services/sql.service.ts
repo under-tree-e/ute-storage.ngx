@@ -16,7 +16,8 @@ export class SqlService {
      * @returns
      */
     public sqlConvert(method: string, apireq: UteApis, refs: UteObjects | null = null): UteQueryStrings {
-        apireq.noref ? (refs = null) : null;
+        apireq.noref || (refs && Object.keys(refs).length === 0) ? (refs = null) : null;
+
         let selectArray: any = apireq.select && Array.isArray(apireq.select) ? JSON.parse(JSON.stringify(apireq.select)) : apireq.select;
 
         if (typeof selectArray === "object" && typeof selectArray != "string") {
@@ -30,6 +31,10 @@ export class SqlService {
         };
 
         let stringInsert = (): string => {
+            if (selectArray) {
+                selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null && value !== ""));
+            }
+
             return selectArray
                 ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
                       .map((st: any) => {
@@ -47,6 +52,9 @@ export class SqlService {
         };
 
         let stringUpdate = (): string => {
+            if (selectArray) {
+                selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null));
+            }
             return selectArray
                 ? `${Object.keys(selectArray)
                       .map((st: any) => `${st} = ${typeof selectArray[st] === "string" || selectArray[st] instanceof Date ? `'${selectArray[st]}'` : selectArray[st]}`)
@@ -205,7 +213,9 @@ export class SqlService {
                 if (key === UteQueryWRParams.lik || key === UteQueryWRParams.likN) {
                     topLevelConditions.push(`${key} '${data[key]}'`);
                 } else {
-                    topLevelConditions.push(`${refs ? `${refs}.${key}` : key} = '${data[key]}'`);
+                    let value: any = typeof data[key] === "string" ? `'${data[key]}'` : data[key];
+
+                    topLevelConditions.push(`${refs ? `${refs}.${key}` : key} = ${value}`);
                 }
             }
         }

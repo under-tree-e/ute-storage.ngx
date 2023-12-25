@@ -80,6 +80,20 @@ export class HttpService {
             try {
                 let result: UteObjects = {};
                 for (let req of apireq) {
+                    // Remove incorrect fields from request
+                    if (req.select && !Array.isArray(req.select) && typeof req.select === "object") {
+                        const queryPRF: string = `PRAGMA table_info(${req.table});`;
+                        let result: any = await sqlDB.query(queryPRF);
+
+                        let filterSelect: any = {};
+                        Object.keys(req.select).map((rs: string, irs: number) => {
+                            if (result.values.some((vl: any) => rs === vl.name)) {
+                                filterSelect[rs] = Object.values(req.select as any)[irs];
+                            }
+                        });
+                        req.select = filterSelect;
+                    }
+
                     let storageResult: UteObjects = await this.stMethod(req, sqlDB);
                     result = mergeObjects(result, storageResult);
                 }
@@ -125,7 +139,7 @@ export class HttpService {
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("GET", apireq, pragmaList);
 
-                // console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
+                console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
@@ -177,7 +191,7 @@ export class HttpService {
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
 
-                // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
+                console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
                 let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert}`);
 
@@ -214,7 +228,7 @@ export class HttpService {
                 }
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
 
-                // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 

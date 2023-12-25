@@ -144,6 +144,8 @@ export class StorageService {
                         }
                     }
 
+                    // console.log("createTableQueries", createTableQueries);
+
                     if (createTableQueries && createTableQueries.length > 0) {
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=off;`);
                         for (let query of createTableQueries) {
