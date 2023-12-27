@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import { UteStorageConfigs } from "../interfaces/config";
-import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult } from "@capacitor-community/sqlite";
+import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult, capSQLiteChanges } from "@capacitor-community/sqlite";
 import { defineCustomElements as jeepSqlite } from "jeep-sqlite/loader";
 import { lastValueFrom } from "rxjs";
 import { HttpClient } from "@angular/common/http";
@@ -58,6 +58,7 @@ export class StorageService {
                         const jeepEl: any = document.createElement("jeep-sqlite");
                         document.body.appendChild(jeepEl);
                         jeepEl.autoSave = true;
+                        jeepEl.wasmPath = "assets";
                         await customElements.whenDefined("jeep-sqlite");
                         await this.initWebStore();
                         break;
@@ -339,11 +340,6 @@ export class StorageService {
             if (platform !== "web") {
                 reject(new Error(`not implemented for this platform: ${platform}`));
             }
-            if (this.sqlite != null) {
-                await this.dbConnect(this.defaultDB);
-            } else {
-                reject(new Error(`no connection open for ${this.defaultDB}`));
-            }
             try {
                 await this.sqlite.saveToLocalDisk(this.defaultDB);
                 resolve();
@@ -358,18 +354,13 @@ export class StorageService {
      * @param overwrite
      * @returns
      */
-    public async getFromLocalDiskToStore(overwrite?: boolean): Promise<void> {
+    public async getFromLocalDiskToStore(): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            const mOverwrite: boolean = overwrite != null ? overwrite : true;
-            if (this.sqlite != null) {
-                try {
-                    await this.sqlite.getFromLocalDiskToStore(mOverwrite);
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            } else {
-                reject(new Error(`can't download the database`));
+            try {
+                await this.sqlite.getFromLocalDiskToStore(true);
+                resolve();
+            } catch (error) {
+                reject(error);
             }
         });
     }
@@ -391,24 +382,6 @@ export class StorageService {
             }
         });
     }
-
-    /**
-     * Import from a Json Object
-     * @param jsonstring
-     */
-    // public async importFromJson(jsonstring: string): Promise<void> {
-    //     return new Promise(async (resolve, reject) => {
-    //         if(this.sqlite != null) {
-    //             try {
-    //                 resolve(await this.sqlite.importFromJson(jsonstring));
-    //             } catch (error) {
-    //                 reject(error);
-    //             }
-    //         } else {
-    //             reject(new Error(`no connection open`));
-    //         }
-    //     });
-    // }
 
     /**
      * Initialize the Web store

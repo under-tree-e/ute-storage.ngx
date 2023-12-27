@@ -139,7 +139,7 @@ export class HttpService {
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("GET", apireq, pragmaList);
 
-                console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
+                // console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
                 let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
 
@@ -191,7 +191,7 @@ export class HttpService {
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
 
-                console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
+                // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
 
                 let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert}`);
 
@@ -228,7 +228,7 @@ export class HttpService {
                 }
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
 
-                console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
                 await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
 
