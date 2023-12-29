@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import { UteStorageConfigs } from "../interfaces/config";
-import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult, capSQLiteChanges } from "@capacitor-community/sqlite";
+import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult } from "@capacitor-community/sqlite";
 import { defineCustomElements as jeepSqlite } from "jeep-sqlite/loader";
 import { lastValueFrom } from "rxjs";
 import { HttpClient } from "@angular/common/http";
@@ -25,7 +25,7 @@ export class StorageService {
         if (this.config) {
             this.config.environment!.storage = this;
             this.defaultDB = this.config.name;
-            this.Init();
+            this.Init(config);
         }
     }
 
@@ -33,15 +33,13 @@ export class StorageService {
      * Initialization module
      * @returns boolean result
      */
-    public Init(config?: UteStorageConfigs) {
+    public Init(config: UteStorageConfigs) {
         console.log("StorageService - Init");
         // console.log(`${new Date().toISOString()} => StorageService - Init`);
 
-        if (config) {
-            this.config = config;
-            this.defaultDB = this.config.name;
-            this.config.environment!.storage = this;
-        }
+        this.config = config;
+        this.defaultDB = this.config.name;
+        this.config.environment!.storage = this;
 
         return new Promise(async (resolve, reject) => {
             try {
