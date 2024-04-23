@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import { UteStorageConfigs } from "../interfaces/config";
-import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult } from "@capacitor-community/sqlite";
+import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult, capSQLiteChanges } from "@capacitor-community/sqlite";
 import { defineCustomElements as jeepSqlite } from "jeep-sqlite/loader";
 import { lastValueFrom } from "rxjs";
 import { HttpClient } from "@angular/common/http";
@@ -82,6 +82,9 @@ export class StorageService {
 
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
 
+                console.log(isMainDB);
+                console.log(update);
+
                 if (!isMainDB || update) {
                     console.log("Storage Build Start");
 
@@ -143,8 +146,6 @@ export class StorageService {
                         }
                     }
 
-                    // console.log("createTableQueries", createTableQueries);
-
                     if (createTableQueries && createTableQueries.length > 0) {
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=off;`);
                         for (let query of createTableQueries) {
@@ -153,19 +154,23 @@ export class StorageService {
                         await sqlDB.query(`${UteQuerySysParams.pra} ${UteQuerySysParams.frk}=on;`);
                     }
                     await this.closeConnection(this.defaultDB);
-                }
 
-                let databasesFile: UteObjects<any> = await lastValueFrom(this.http.get(`${this.config.db ? this.config.db : "assets/databases/databases.json"}?v=` + Date.now()));
-
-                if (databasesFile) {
-                    for (let dbName of databasesFile["databaseList"]) {
-                        this.requestDB = dbName;
-                        let isCurDB: boolean = await this.isDatabase(dbName);
-                        if (!isCurDB) {
-                            await this.copyFromAssets();
-                        }
+                    if (!isMainDB) {
+                        await this.copyFromAssets();
                     }
                 }
+
+                // let databasesFile: UteObjects<any> = await lastValueFrom(this.http.get(`${this.config.db ? this.config.db : "assets/databases/databases.json"}?v=` + Date.now()));
+
+                // if (databasesFile) {
+                //     //     for (let dbName of databasesFile["databaseList"]) {
+                //     //         // this.requestDB = dbName;
+                //     //         let isCurDB: boolean = await this.isDatabase(dbName);
+                //     //         if (!isCurDB) {
+                //     await this.copyFromAssets();
+                //     //         }
+                //     //     }
+                // }
 
                 resolve(true);
             } catch (error) {
@@ -208,7 +213,6 @@ export class StorageService {
             let sqlDB: SQLiteDBConnection = {} as SQLiteDBConnection;
             try {
                 let isConnection = await this.isConnection(database);
-
                 if (isConnection.result) {
                     sqlDB = await this.retrieveConnection(database);
                 } else {
@@ -366,12 +370,35 @@ export class StorageService {
     /**
      * Copy databases from public/assets/databases folder to application databases folder
      */
-    private copyFromAssets(overwrite?: boolean): Promise<void> {
+    public copyFromAssets(overwrite?: boolean): Promise<void> {
         return new Promise(async (resolve, reject) => {
             const mOverwrite: boolean = overwrite != null ? overwrite : true;
             if (this.sqlite != null) {
                 try {
                     resolve(await this.sqlite.copyFromAssets(mOverwrite));
+                } catch (error) {
+                    reject(error);
+                }
+            } else {
+                reject(new Error(`no connection open`));
+            }
+        });
+    }
+
+    /**
+     * Import from a Json Object
+     * @param jsonstring
+     */
+    public async importFromJson(jsonstring: string): Promise<capSQLiteChanges> {
+        return new Promise(async (resolve, reject) => {
+            if (this.sqlite != null) {
+                try {
+                    // if (db) {
+                    //     await this.dbConnect(db);
+                    // } else {
+                    //     await this.dbConnect(this.defaultDB);
+                    // }
+                    resolve(await this.sqlite.importFromJson(jsonstring));
                 } catch (error) {
                     reject(error);
                 }

@@ -1,13 +1,14 @@
 {
   "name": "ute-storage.ngx",
-  "version": "0.0.1",
+  "version": "0.0.2-dev.0",
   "description": "Angular storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "scripts": {
     "watch": "ng build --watch",
     "build": "ng build",
     "fix": "npm audit fix --force",
     "update": "ncu --upgrade && npm i --force && npm run fix",
-    "printdoc": "typedoc"
+    "printdoc": "typedoc",
+    "dev-update": "npm version prerelease --preid=dev --no-git-tag-version && git add . && git commit -m 'dev_update_'$npm_package_version && git push --all"
   },
   "keywords": [
     "typescript",

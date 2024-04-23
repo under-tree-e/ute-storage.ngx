@@ -15,11 +15,11 @@ export interface UteStorageConfigs {
      * Default DB name
      */
     name: string;
-    /**
-     * Path to additional DB
-     * @defaultValue `assets/databases/databases.json`
-     */
-    db?: string;
+    // /**
+    //  * Path to additional DB
+    //  * @defaultValue `assets/databases/databases.json`
+    //  */
+    // db?: string;
     /**
      * Path to models files OR models object
      * @defaultValue `assets/databases/model.json`
