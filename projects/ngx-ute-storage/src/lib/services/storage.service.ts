@@ -386,6 +386,25 @@ export class StorageService {
     }
 
     /**
+     * Is Json Object Valid
+     * @param jsonstring Check the validity of a given Json Object
+     */
+
+    public async isJsonValid(jsonstring: string): Promise<capSQLiteResult> {
+        return new Promise(async (resolve, reject) => {
+            if (this.sqlite != null) {
+                try {
+                    resolve(await this.sqlite.isJsonValid(jsonstring));
+                } catch (error) {
+                    reject(error);
+                }
+            } else {
+                reject(new Error(`no connection open`));
+            }
+        });
+    }
+
+    /**
      * Import from a Json Object
      * @param jsonstring
      */

@@ -349,7 +349,7 @@ export class HttpService {
                 resultPR.values.map((fr: any) => {
                     if (fr.type === "BOOLEAN") {
                         values = values.map((vl: any) => {
-                            if (vl[fr.name] != undefined) {
+                            if (vl && vl[fr.name] != undefined) {
                                 vl[fr.name] = vl[fr.name] ? true : false;
                             }
                             if (refs && refs.length > 0) {
