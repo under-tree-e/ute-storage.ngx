@@ -18,7 +18,7 @@ export interface UteApis {
     /**
      * Columns to select from table + ref table (only if `noref: false`) OR object with new data
      * @example { select: ["column1", "column2"] }
-     * @example { select: { table1: ["column1", "column2"] }, reftable: ["column1"] }
+     * @example { select: { <table1>: ["column1", "column2"] }, <reftable>: ["column1"] }
      * @example { select: { column1: value1, column2: value2 } }
      */
     select?: string | string[] | UteObjects;
@@ -34,10 +34,12 @@ export interface UteApis {
      */
     order?: UteObjects;
     /**
-     * Limit number of returned values.
-     * @example { limit: 10, step: 5 }
+     * Limit number of returned values. [ limit, step ]
+     * - limit - number of values to return
+     * - step - start index
+     * @example { limit: [ 10, 5 ] }
      */
-    limit?: UteObjects;
+    limit?: number[];
     /**
      * Do not add REFERENSE tables to query result *IF IT ISSETS*
      */

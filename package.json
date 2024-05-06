@@ -1,6 +1,6 @@
 {
   "name": "ute-storage.ngx",
-  "version": "0.1.2-dev.1",
+  "version": "0.1.2-dev.2",
   "description": "Angular storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "scripts": {
     "watch": "ng build --watch",

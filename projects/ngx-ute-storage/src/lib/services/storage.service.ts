@@ -82,9 +82,6 @@ export class StorageService {
 
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
 
-                console.log(isMainDB);
-                console.log(update);
-
                 if (!isMainDB || update) {
                     console.log("Storage Build Start");
 
@@ -159,18 +156,6 @@ export class StorageService {
                         await this.copyFromAssets();
                     }
                 }
-
-                // let databasesFile: UteObjects<any> = await lastValueFrom(this.http.get(`${this.config.db ? this.config.db : "assets/databases/databases.json"}?v=` + Date.now()));
-
-                // if (databasesFile) {
-                //     //     for (let dbName of databasesFile["databaseList"]) {
-                //     //         // this.requestDB = dbName;
-                //     //         let isCurDB: boolean = await this.isDatabase(dbName);
-                //     //         if (!isCurDB) {
-                //     await this.copyFromAssets();
-                //     //         }
-                //     //     }
-                // }
 
                 resolve(true);
             } catch (error) {
