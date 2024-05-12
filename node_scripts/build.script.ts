@@ -1,5 +1,7 @@
 import fs from "fs";
 import packageJson from "../package.json";
+import packageProject from "../projects/ngx-ute-storage/package.json";
+import path from "path";
 
 export default class BuildScript {
     constructor(private command: any) {}
@@ -8,6 +10,10 @@ export default class BuildScript {
             console.log("Prepare folders...");
 
             await this.command("cf", ["./dist"]);
+
+            packageProject.version = packageJson.version;
+            let configString: string = JSON.stringify(packageProject, null, 2);
+            fs.writeFileSync(path.resolve(`projects/ngx-ute-storage/package.json`), configString);
 
             console.log("Building app...");
 
@@ -21,7 +27,7 @@ export default class BuildScript {
 
             fs.copyFileSync(`README.md`, `dist/ngx-ute-storage/README.md`);
 
-            await this.command("typedoc", ["--name", "UTE Storage", "--readme", "README.md"]);
+            await this.command("typedoc", ["--name", (packageJson as any).title, "--readme", "README.md"]);
 
             if (publish) {
                 console.log("Sync git branches...");

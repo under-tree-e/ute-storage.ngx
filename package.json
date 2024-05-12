@@ -1,7 +1,31 @@
 {
   "name": "ute-storage.ngx",
-  "version": "0.1.2",
+  "title": "UTE Storage",
+  "version": "0.1.3",
   "description": "Angular Storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
+  "author": {
+    "name": "Under Tree Entertainment",
+    "url": "https://under-tree-e.com",
+    "email": "under-tree-e@outlook.com",
+    "twitter": "under_tree_e",
+    "linkedin": "under-tree-e"
+  },
+  "homepage": "https://github.com/under-tree-e/ute-storage.ngx#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/under-tree-e/ute-storage.ngx"
+  },
+  "bugs": {
+    "url": "https://github.com/under-tree-e/ute-storage.ngx/issues"
+  },
+  "keywords": [
+    "typescript",
+    "es5",
+    "sqlite",
+    "offline"
+  ],
+  "license": "MIT",
+  "private": false,
   "scripts": {
     "start": "ng serve",
     "watch": "ng build --watch",
@@ -20,21 +44,6 @@
     "patch-update": "npm version patch --no-git-tag-version",
     "dev-update": "npm version prerelease --preid=dev --no-git-tag-version && git add . && git commit -m 'dev_update_'$npm_package_version && git push --all"
   },
-  "keywords": [
-    "typescript",
-    "es5",
-    "sqlite",
-    "offline"
-  ],
-  "author": {
-    "name": "Under Tree Entertainment",
-    "url": "https://under-tree-e.com",
-    "email": "under-tree-e@outlook.com",
-    "twitter": "under_tree_e",
-    "linkedin": "under-tree-e"
-  },
-  "private": false,
-  "license": "MIT",
   "dependencies": {
     "@angular/animations": "^16.1.0",
     "@angular/common": "^16.1.0",
