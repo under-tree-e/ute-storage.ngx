@@ -24,7 +24,9 @@
     ],
     "types": [
       "node"
-    ]
+    ],
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
   },
   "typedocOptions": {
     "entryPoints": [

@@ -148,7 +148,7 @@ export class HttpService {
                     resolve({ [apireq.table as string]: await this.converter(apireq.table!, newResult, sqlDB, pragmaTables) });
                 } else if (result.values) {
                     if (sqlString.select?.includes("COUNT")) {
-                        resolve({ [apireq.table as string]: result.values[0]["COUNT(*)"] });
+                        resolve({ [(apireq.table as string) + "Count"]: result.values[0]["COUNT(*)"] });
                     } else {
                         resolve({ [apireq.table as string]: await this.converter(apireq.table!, result.values, sqlDB) });
                     }
