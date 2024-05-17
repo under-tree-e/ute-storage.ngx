@@ -1,20 +1,81 @@
 import { Injectable } from "@angular/core";
+import { UteStorageConfigs } from "../interfaces/config";
+import { UteApis } from "../interfaces/api";
+import { UteObjects } from "../interfaces/object";
+import { ApiConst } from "../contantes/api";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { PlatformLocation } from "@angular/common";
+import { Capacitor } from "@capacitor/core";
+import { lastValueFrom, map } from "rxjs";
 
 @Injectable({
     providedIn: "root",
 })
 export class SyncService {
-    private tableList: string[] = ["groups", "accounts", "archives", "banks", "budgets", "categories", "clears", "goals", "records", "stores"];
-    private syncData: any = {};
-    private syncAdd: any = {};
-    private syncChange: any = {};
-    private syncRemove: any = {};
+    private options: {
+        body?: any;
+        headers?: HttpHeaders | undefined;
+    } = {};
 
-    constructor() {}
+    // private syncDate: Date = new Date();
+    // private tableList: string[] = ["groups", "accounts", "archives", "banks", "budgets", "categories", "clears", "goals", "records", "stores"];
+    // private syncData: any = {};
+    // private syncAdd: any = {};
+    // private syncChange: any = {};
+    // private syncRemove: any = {};
 
-    public sync(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let result: any = { status: 0, complete: false };
+    constructor(private http: HttpClient, private platformLocation: PlatformLocation) {}
+
+    /**
+     * Generate http option to server secure allows
+     * @returns `boolean` status
+     */
+    private generateOptions(): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                this.options = {
+                    headers: new HttpHeaders({
+                        "Content-Type": "application/json",
+                        Session: btoa(
+                            JSON.stringify({
+                                deviceId: await lastValueFrom(this.http.get("assets/deviceId")),
+                                device: Capacitor.getPlatform(),
+                                date: new Date().toISOString().split("T")[0],
+                            })
+                        ),
+                    }),
+                };
+                resolve(true);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    public sync(config: UteStorageConfigs): Promise<any> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                await this.generateOptions();
+                const serverUrl: string = `${config.syncServer}${config.syncServer?.endsWith("/") ? "api/" : "/api/"}`;
+
+                const initAns: any = await lastValueFrom(
+                    this.http.post(
+                        `${serverUrl}sync`,
+                        {
+                            name: config.syncName,
+                            date: config.syncDate,
+                        },
+                        this.options
+                    )
+                );
+
+                if (initAns) {
+                }
+            } catch (error) {
+                reject(error);
+            }
+
+            // let result: any = { status: 0, complete: false };
             // console.log(GlobalSession.auth);
             // console.log(public env = environment;.online);
             // console.log(public env = environment;.server);
@@ -87,6 +148,8 @@ export class SyncService {
             // }
         });
     }
+
+    private checkVersions() {}
 
     // private getData(): Observable<boolean> {
     //     this.syncData = { server: {}, local: {} };

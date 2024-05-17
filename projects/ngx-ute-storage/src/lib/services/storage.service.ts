@@ -3,13 +3,13 @@ import { Capacitor } from "@capacitor/core";
 import { UteStorageConfigs } from "../interfaces/config";
 import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult, capSQLiteChanges } from "@capacitor-community/sqlite";
 import { defineCustomElements as jeepSqlite } from "jeep-sqlite/loader";
-import { lastValueFrom } from "rxjs";
 import { HttpClient } from "@angular/common/http";
 import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
 import { UteQuerySysParams } from "../interfaces/query";
 import { HttpService } from "./http.service";
 import { UteModelTypes } from "../interfaces/model";
+import { SyncService } from "./sync.service";
 
 @Injectable({
     providedIn: "root",
@@ -21,7 +21,7 @@ export class StorageService {
     private platform: string = Capacitor.getPlatform();
     private requestDB: string = this.defaultDB;
 
-    constructor(@Inject("UteStorageConfig") private config: UteStorageConfigs, private http: HttpClient, private httpService: HttpService) {
+    constructor(@Inject("UteStorageConfig") private config: UteStorageConfigs, private http: HttpClient, private httpService: HttpService, private syncService: SyncService) {
         if (this.config) {
             this.config.environment!.storage = this;
             this.defaultDB = this.config.name;
@@ -157,6 +157,8 @@ export class StorageService {
                     }
                 }
 
+                await this.syncService.sync(this.config);
+
                 resolve(true);
             } catch (error) {
                 reject(error);
@@ -171,7 +173,7 @@ export class StorageService {
      * @param dbName
      * @returns
      */
-    public request(method: string, apireq: UteApis[], dbName?: string): Promise<UteObjects> {
+    public request<T>(method: string, apireq: UteApis<T>[], dbName?: string): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!dbName) {

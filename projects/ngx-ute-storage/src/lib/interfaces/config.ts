@@ -29,4 +29,25 @@ export interface UteStorageConfigs {
      * Source project environment file
      */
     environment: { storage: any } | any;
+    /**
+     * Link to server for sync data
+     */
+    syncServer?: string;
+    /**
+     * Date of last app sync to server
+     * @default `environment.syncDate`
+     */
+    syncDate?: Date;
+    /**
+     * Name of filed for values search
+     * @default `createdBy`
+     */
+    syncField?: string;
+    /**
+     * Name of values for search beetwen server & app
+     * @default `environment.syncName`
+     *
+     * Attention! Need to be updated when user `SignIn`
+     */
+    syncName?: string;
 }
