@@ -24,7 +24,7 @@ export class SyncService {
     // private syncChange: any = {};
     // private syncRemove: any = {};
 
-    constructor(private http: HttpClient, private platformLocation: PlatformLocation) {}
+    constructor(private http: HttpClient) {}
 
     /**
      * Generate http option to server secure allows
@@ -62,6 +62,8 @@ export class SyncService {
                     this.http.post(
                         `${serverUrl}sync`,
                         {
+                            type: "init",
+                            field: config.syncField,
                             name: config.syncName,
                             date: config.syncDate,
                         },
