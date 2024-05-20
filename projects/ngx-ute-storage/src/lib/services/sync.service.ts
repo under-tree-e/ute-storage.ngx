@@ -1,12 +1,11 @@
 import { Injectable } from "@angular/core";
 import { UteStorageConfigs } from "../interfaces/config";
-import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
-import { ApiConst } from "../contantes/api";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { PlatformLocation } from "@angular/common";
 import { Capacitor } from "@capacitor/core";
-import { lastValueFrom, map } from "rxjs";
+import { lastValueFrom } from "rxjs";
+import { HttpService } from "./http.service";
+import { SQLiteDBConnection } from "@capacitor-community/sqlite";
 
 @Injectable({
     providedIn: "root",
@@ -24,7 +23,7 @@ export class SyncService {
     // private syncChange: any = {};
     // private syncRemove: any = {};
 
-    constructor(private http: HttpClient) {}
+    constructor(private http: HttpClient, private httpService: HttpService) {}
 
     /**
      * Generate http option to server secure allows
@@ -52,13 +51,13 @@ export class SyncService {
         });
     }
 
-    public sync(config: UteStorageConfigs): Promise<any> {
+    public sync(config: UteStorageConfigs, sqlDB: SQLiteDBConnection): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
                 await this.generateOptions();
                 const serverUrl: string = `${config.syncServer}${config.syncServer?.endsWith("/") ? "api/" : "/api/"}`;
 
-                const initAns: any = await lastValueFrom(
+                const serverData: any = await lastValueFrom(
                     this.http.post(
                         `${serverUrl}sync`,
                         {
@@ -70,8 +69,48 @@ export class SyncService {
                         this.options
                     )
                 );
+                console.log(serverData);
 
-                if (initAns) {
+                if (serverData === null) {
+                    resolve(true);
+                } else {
+                    let createLocalData: UteObjects = {};
+                    let updateLocalData: UteObjects = {};
+                    let deleteLocalData: UteObjects = {};
+
+                    let localData: UteObjects = await this.getSyncData(config, sqlDB);
+
+                    let returnServerData: UteObjects = {};
+                    let deleteServerData: UteObjects = localData["deletes"];
+
+                    Object.keys(serverData).map((n: string) => {
+                        if (localData[n]) {
+                            createLocalData[n] = serverData[n].filter((sd: any) => !localData[n].some((ld: any) => ld.uid === sd.uid));
+                            updateLocalData[n] = serverData[n].filter((sd: any) => localData[n].some((ld: any) => ld.uid === sd.uid));
+                            deleteLocalData[n] = localData[n].filter((sd: any) => !serverData[n].some((ld: any) => ld.uid === sd.uid));
+                        } else {
+                            createLocalData[n] = serverData[n];
+                        }
+                    });
+
+                    Object.keys(localData).map((n: string) => {
+                        if (n !== "deletes") {
+                            returnServerData[n] = localData[n].filter((dl: any) => dl.updatedAt.getTime() > new Date(serverData.users[0].syncDate));
+                        }
+                    });
+
+                    // update local db
+
+                    await lastValueFrom(
+                        this.http.post(
+                            `${serverUrl}sync`,
+                            {
+                                type: "update",
+                                data: [returnServerData, deleteServerData],
+                            },
+                            this.options
+                        )
+                    );
                 }
             } catch (error) {
                 reject(error);
@@ -151,7 +190,33 @@ export class SyncService {
         });
     }
 
-    private checkVersions() {}
+    private getSyncData(config: UteStorageConfigs, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const sendData: UteObjects = await this.httpService.request(
+                    "GET",
+                    Object.keys(config.models!)
+                        .filter((m: string) => m !== ("logs" || "media" || "users"))
+                        .map((m: string) => {
+                            return {
+                                table: m,
+                                where: {
+                                    AND: {
+                                        [config.syncField!]: config.syncName,
+                                        changedAt: { BETWEEN: [config.syncDate, new Date()] },
+                                    },
+                                },
+                            };
+                        }),
+                    sqlDB
+                );
+                console.log(JSON.stringify(sendData));
+                resolve(sendData);
+            } catch (error: any) {
+                reject(error);
+            }
+        });
+    }
 
     // private getData(): Observable<boolean> {
     //     this.syncData = { server: {}, local: {} };

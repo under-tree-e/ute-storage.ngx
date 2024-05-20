@@ -157,7 +157,9 @@ export class StorageService {
                     }
                 }
 
-                await this.syncService.sync(this.config);
+                let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
+                await this.syncService.sync(this.config, sqlDB);
+                await this.closeConnection(this.defaultDB);
 
                 resolve(true);
             } catch (error) {
