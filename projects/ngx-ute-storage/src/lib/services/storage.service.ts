@@ -10,6 +10,8 @@ import { UteQuerySysParams } from "../interfaces/query";
 import { HttpService } from "./http.service";
 import { UteModelTypes } from "../interfaces/model";
 import { SyncService } from "./sync.service";
+import { Observable, lastValueFrom } from "rxjs";
+import { SyncResponseData } from "../interfaces/sync";
 
 @Injectable({
     providedIn: "root",
@@ -157,15 +159,62 @@ export class StorageService {
                     }
                 }
 
-                if (this.config.syncName) {
-                    let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
-                    await this.syncService.sync(this.config, sqlDB);
-                    await this.closeConnection(this.defaultDB);
-                }
+                // await this.startSyncPromise();
 
                 resolve(true);
             } catch (error) {
                 reject(error);
+            }
+        });
+    }
+
+    // /**
+    //  * Start sync process in Promise logic
+    //  * @returns
+    //  */
+    // private startSyncPromise(): Promise<boolean> {
+    //     return new Promise(async (resolve, reject) => {
+    //         let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
+    //         lastValueFrom(this.syncService.sync(this.config, sqlDB))
+    //             .then(async () => {
+    //                 await this.closeConnection(this.defaultDB);
+    //                 resolve(true);
+    //             })
+    //             .catch((error: any) => {
+    //                 reject(error);
+    //             });
+    //     });
+    // }
+
+    /**
+     * Start sync process
+     * @returns Sync status string
+     */
+    public startSync(): Observable<SyncResponseData | null> {
+        return new Observable((obs: any) => {
+            console.log(this.config);
+
+            if (this.config.environment.syncName) {
+                console.log(222);
+
+                async () => {
+                    let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
+                    this.syncService.sync(this.config.environment, sqlDB).subscribe(async (res: SyncResponseData | null) => {
+                        if (res) {
+                            await this.closeConnection(this.defaultDB);
+                            obs.next(res);
+                            obs.complete();
+                        } else {
+                            obs.next(null);
+                            obs.complete();
+                        }
+                    });
+                };
+            } else {
+                console.log(333);
+
+                obs.next(null);
+                obs.complete();
             }
         });
     }

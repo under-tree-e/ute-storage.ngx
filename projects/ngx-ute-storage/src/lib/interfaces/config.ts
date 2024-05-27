@@ -31,11 +31,14 @@ export interface UteStorageConfigs {
     environment: { storage: any } | any;
     /**
      * Link to server for sync data
+     * @default `config.server`
      */
     syncServer?: string;
     /**
      * Date of last app sync to server
-     * @default `environment.syncDate`
+     * @default `config.syncDate`
+     *
+     * Attention! Need to be updated when user `SignIn`
      */
     syncDate?: Date;
     /**
@@ -45,7 +48,7 @@ export interface UteStorageConfigs {
     syncField?: string;
     /**
      * Name of values for search beetwen server & app
-     * @default `environment.syncName`
+     * @default `config.syncName`
      *
      * Attention! Need to be updated when user `SignIn`
      */

@@ -137,11 +137,12 @@ export class HttpService {
                     }
                 }
 
-                let sqlString: UteQueryStrings = this.sqlService.sqlConvert("GET", apireq, pragmaList);
+                const sqlString: UteQueryStrings = this.sqlService.sqlConvert("GET", apireq, pragmaList);
+                let selectString: string = `SELECT ${sqlString.select || "*"} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`;
+                selectString = selectString.replace(/(\s{2,})/g, " ");
 
-                // console.log(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
-
-                let result: DBSQLiteValues = await sqlDB.query(`SELECT ${sqlString.select} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`);
+                // console.log("selectString",selectString);
+                let result: DBSQLiteValues = await sqlDB.query(selectString);
 
                 if (result.values && pragmaTables && pragmaTables.length > 0) {
                     let newResult: UteObjects[] = this.convertToObjects(result.values, pragmaTables);
@@ -190,10 +191,11 @@ export class HttpService {
                 });
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
+                let createString: string = `INSERT INTO ${apireq.table} ${sqlString.insert}`;
+                createString = createString.replace(/(\s{2,})/g, " ");
 
-                // console.log(`INSERT INTO ${apireq.table} ${sqlString.insert};`);
-
-                let result: any = await sqlDB.run(`INSERT INTO ${apireq.table} ${sqlString.insert}`);
+                // console.log(createString);
+                let result: any = await sqlDB.run(createString);
 
                 result = await this.getSql(
                     {
@@ -227,10 +229,11 @@ export class HttpService {
                     return;
                 }
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
+                let updateString: string = `UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`;
+                updateString = updateString.replace(/(\s{2,})/g, " ");
 
-                // console.log(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
-
-                await sqlDB.run(`UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`);
+                // console.log(updateString);
+                await sqlDB.run(updateString);
 
                 resolve({
                     [apireq.table as string]: apireq.select,
@@ -256,10 +259,11 @@ export class HttpService {
                     return;
                 }
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("DELETE", apireq);
+                let deleteString: string = `DELETE FROM ${apireq.table} ${sqlString.where ? "WHERE " + sqlString.where : ""};`;
+                deleteString = deleteString.replace(/(\s{2,})/g, " ");
 
-                // console.log(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
-
-                await sqlDB.run(`DELETE FROM ${apireq.table} WHERE ${sqlString.where};`);
+                console.log(deleteString);
+                await sqlDB.run(deleteString);
 
                 resolve({
                     [apireq.table as string]: [apireq.where],
