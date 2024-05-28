@@ -102,6 +102,10 @@ export enum UteQuerySysParams {
  * @prop betN: `NOT BETWEEN`
  * @prop lik: `LIKE`
  * @prop likN: `NOT LIKE`
+ * @prop gt: `GT` (GREATER THAN)
+ * @prop gte: `GTE` (GREATER THAN OR EQUAL)
+ * @prop lt: `LT` (LOWER THAN)
+ * @prop lte: `LTE` (LOWER THAN OR EQUAL)
  * @prop ord: `ORDER BY`
  * @prop ordA: `ASC`
  * @prop ordD: `DESC`
@@ -119,6 +123,11 @@ export enum UteQueryWRParams {
 
     lik = "LIKE",
     likN = "NOT LIKE",
+
+    gt = "GT",
+    gte = "GTE",
+    lt = "LT",
+    lte = "LTE",
 
     ord = "ORDER BY",
     ordA = "ASC",

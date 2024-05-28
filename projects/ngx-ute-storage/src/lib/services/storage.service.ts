@@ -194,25 +194,22 @@ export class StorageService {
         return new Observable((obs: any) => {
             console.log(this.config);
 
-            if (this.config.environment.syncName) {
-                console.log(222);
-
-                async () => {
-                    let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
-                    this.syncService.sync(this.config.environment, sqlDB).subscribe(async (res: SyncResponseData | null) => {
+            if (this.config.syncName || this.config.environment.syncName) {
+                this.dbConnect(this.defaultDB).then((sqlDB: SQLiteDBConnection) => {
+                    this.syncService.sync(this.config, sqlDB).subscribe(async (res: SyncResponseData | null) => {
                         if (res) {
-                            await this.closeConnection(this.defaultDB);
                             obs.next(res);
-                            obs.complete();
+                            if (res.close) {
+                                await this.closeConnection(this.defaultDB);
+                                obs.complete();
+                            }
                         } else {
                             obs.next(null);
                             obs.complete();
                         }
                     });
-                };
+                });
             } else {
-                console.log(333);
-
                 obs.next(null);
                 obs.complete();
             }

@@ -141,7 +141,7 @@ export class HttpService {
                 let selectString: string = `SELECT ${sqlString.select || "*"} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`;
                 selectString = selectString.replace(/(\s{2,})/g, " ");
 
-                // console.log("selectString",selectString);
+                console.log("selectString", selectString);
                 let result: DBSQLiteValues = await sqlDB.query(selectString);
 
                 if (result.values && pragmaTables && pragmaTables.length > 0) {
@@ -172,9 +172,8 @@ export class HttpService {
     private postSql(apireq: UteApis, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
-                if (Array.isArray(apireq.select)) {
-                    reject("request not object");
-                    return;
+                if (!Array.isArray(apireq.select)) {
+                    apireq.select = [apireq.select];
                 }
 
                 const queryPR: string = `PRAGMA table_info(${apireq.table});`;
@@ -182,19 +181,23 @@ export class HttpService {
                 resultPR.values?.map(async (vl: any) => {
                     switch (vl.dflt_value) {
                         case "'@UUID4'":
-                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = v4()) : null;
+                            apireq.select.map((as: UteObjects) => {
+                                as && !as[vl.name] ? (as[vl.name] = v4()) : null;
+                            });
                             break;
                         case "'@DATE'":
-                            apireq.select && !apireq.select[vl.name] ? ((apireq.select as UteObjects)[vl.name] = new Date().toISOString()) : null;
+                            apireq.select.map((as: UteObjects) => {
+                                as && !as[vl.name] ? (as[vl.name] = new Date().toISOString()) : null;
+                            });
                             break;
                     }
                 });
 
-                let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq);
+                let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq, resultPR.values);
                 let createString: string = `INSERT INTO ${apireq.table} ${sqlString.insert}`;
                 createString = createString.replace(/(\s{2,})/g, " ");
 
-                // console.log(createString);
+                console.log(createString);
                 let result: any = await sqlDB.run(createString);
 
                 result = await this.getSql(
@@ -262,7 +265,7 @@ export class HttpService {
                 let deleteString: string = `DELETE FROM ${apireq.table} ${sqlString.where ? "WHERE " + sqlString.where : ""};`;
                 deleteString = deleteString.replace(/(\s{2,})/g, " ");
 
-                console.log(deleteString);
+                // console.log(deleteString);
                 await sqlDB.run(deleteString);
 
                 resolve({

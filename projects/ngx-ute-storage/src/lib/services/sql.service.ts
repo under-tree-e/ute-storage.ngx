@@ -31,24 +31,73 @@ export class SqlService {
         };
 
         let stringInsert = (): string => {
+            // console.log(selectArray);
+
             if (selectArray) {
-                selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null && value !== ""));
+                // console.log(refs);
+
+                const names: string[] = (refs as any[]).filter((r: any) => r.name !== "id").map((r: any) => r.name);
+                let values: any[] = selectArray.map((s: any) => {
+                    // console.log(s);
+
+                    let vl: any[] = [];
+                    names.map((n: string) => {
+                        // console.log(s[n]);
+
+                        if (s[n] === undefined) {
+                            vl.push(null);
+                        } else {
+                            let val = s[n];
+                            if (typeof val === "string") {
+                                val = `'${val}'`;
+                            } else if (val instanceof Date) {
+                                val = `'${new Date(val).toISOString()}'`;
+                            }
+                            vl.push(val);
+                        }
+                    });
+                    return vl;
+                });
+
+                return `(${names.join(", ")}) ${UteQuerySysParams.val} (${values.join("), (")})`;
+                // return selectArray.map((sa: UteObjects) => {
+                //     return sa
+                //         ? `(${Object.keys(sa).join(", ")}) ${UteQuerySysParams.val} (${Object.values(sa)
+                //               .map((st: any) => {
+                //                   if (st) {
+                //                       if (typeof st === "string") {
+                //                           st = `'${st}'`;
+                //                       } else if (st instanceof Date) {
+                //                           st = `'${new Date(st).toISOString()}'`;
+                //                       }
+                //                   }
+                //                   return st;
+                //               })
+                //               .join(", ")})`
+                //         : "";
+                // });
+            } else {
+                return "";
             }
 
-            return selectArray
-                ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
-                      .map((st: any) => {
-                          if (st) {
-                              if (typeof st === "string") {
-                                  st = `'${st}'`;
-                              } else if (st instanceof Date) {
-                                  st = `'${new Date(st).toISOString()}'`;
-                              }
-                          }
-                          return st;
-                      })
-                      .join(", ")})`
-                : "";
+            // if (selectArray) {
+            //     selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null && value !== ""));
+            // }
+
+            // return selectArray
+            //     ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
+            //           .map((st: any) => {
+            //               if (st) {
+            //                   if (typeof st === "string") {
+            //                       st = `'${st}'`;
+            //                   } else if (st instanceof Date) {
+            //                       st = `'${new Date(st).toISOString()}'`;
+            //                   }
+            //               }
+            //               return st;
+            //           })
+            //           .join(", ")})`
+            //     : "";
         };
 
         let stringUpdate = (): string => {
@@ -212,6 +261,21 @@ export class SqlService {
             } else {
                 if (key === UteQueryWRParams.lik || key === UteQueryWRParams.likN) {
                     topLevelConditions.push(`${key} '${data[key]}'`);
+                } else if (key === UteQueryWRParams.gt || key === UteQueryWRParams.gte || key === UteQueryWRParams.lt || key === UteQueryWRParams.lte) {
+                    switch (key) {
+                        case UteQueryWRParams.gt:
+                            topLevelConditions.push(`> '${data[key]}'`);
+                            break;
+                        case UteQueryWRParams.gte:
+                            topLevelConditions.push(`>= '${data[key]}'`);
+                            break;
+                        case UteQueryWRParams.lt:
+                            topLevelConditions.push(`< '${data[key]}'`);
+                            break;
+                        case UteQueryWRParams.lte:
+                            topLevelConditions.push(`<= '${data[key]}'`);
+                            break;
+                    }
                 } else {
                     let value: any = typeof data[key] === "string" ? `'${data[key]}'` : data[key];
 
