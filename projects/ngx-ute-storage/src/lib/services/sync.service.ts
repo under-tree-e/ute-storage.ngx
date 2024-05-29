@@ -54,10 +54,10 @@ export class SyncService {
      * @param sqlDB - DB for connection
      * @returns Boolean status
      */
-    public sync(config: UteStorageConfigs, sqlDB: SQLiteDBConnection): Observable<SyncResponseData | null> {
-        console.log("config", config);
+    public sync(config: UteStorageConfigs, models: any[], sqlDB: SQLiteDBConnection): Observable<SyncResponseData | null> {
+        // console.log("config", config);
         return new Observable((obs) => {
-            console.log(111);
+            // console.log(111);
             this.syncStages = 2;
             this.syncStage = 1;
 
@@ -90,7 +90,7 @@ export class SyncService {
                             this.options
                         )
                     );
-                    console.log(serverData);
+                    // console.log(serverData);
 
                     if (serverData === null) {
                         this.syncStage++;
@@ -108,8 +108,8 @@ export class SyncService {
                         let updateLocalData: UteObjects = {};
                         let deleteLocalData: UteObjects = {};
 
-                        let localData: UteObjects = await this.getSyncData(config, sqlDB);
-                        console.log(localData);
+                        let localData: UteObjects = await this.getSyncData(config, models, sqlDB);
+                        // console.log(localData);
 
                         this.syncStage++;
                         obs.next({ status: SyncStatusList.syncAnalyse, stage: `${this.syncStage} / ${this.syncStages}` });
@@ -161,53 +161,46 @@ export class SyncService {
                                     });
                             }
                         });
-                        console.log(returnServerData);
+                        // console.log(returnServerData);
                         // return;
 
                         this.syncStage++;
                         obs.next({ status: SyncStatusList.syncLocal, stage: `${this.syncStage} / ${this.syncStages}` });
 
-                        console.log(createLocalData);
+                        // console.log(createLocalData);
                         if (Object.keys(createLocalData).length) {
-                            await this.httpService.request(
-                                "POST",
-                                Object.keys(createLocalData).map((m: string) => {
-                                    return {
-                                        table: m,
-                                        select: createLocalData[m],
-                                    };
-                                }),
-                                sqlDB
-                            );
+                            let arrayOfTables: any[] = Object.keys(createLocalData).map((m: string) => {
+                                return {
+                                    table: m,
+                                    select: createLocalData[m].map((d: any) => (d.createdBy = config.syncName)),
+                                };
+                            });
+                            await this.httpService.request("POST", this.sortTables(Object.keys(models), arrayOfTables), sqlDB);
                         }
 
-                        console.log(updateLocalData);
+                        // console.log(updateLocalData);
                         if (Object.keys(updateLocalData).length) {
-                            await this.httpService.request(
-                                "PUT",
-                                Object.keys(updateLocalData).map((m: string) => {
-                                    return {
-                                        table: m,
-                                        select: updateLocalData[m],
-                                        where: { uid: { IN: updateLocalData[m].map((d: any) => d.uid) } },
-                                    };
-                                }),
-                                sqlDB
-                            );
+                            let arrayOfTables: any[] = Object.keys(updateLocalData).map((m: string) => {
+                                return {
+                                    table: m,
+                                    select: updateLocalData[m].map((d: any) => (d.createdBy = config.syncName)),
+                                    where: { uid: { IN: updateLocalData[m].map((d: any) => d.uid) } },
+                                };
+                            });
+
+                            await this.httpService.request("PUT", this.sortTables(Object.keys(models), arrayOfTables), sqlDB);
                         }
 
-                        console.log(deleteLocalData);
+                        // console.log(deleteLocalData);
                         if (Object.keys(deleteLocalData).length) {
-                            await this.httpService.request(
-                                "DELETE",
-                                Object.keys(deleteLocalData).map((m: string) => {
-                                    return {
-                                        table: m,
-                                        where: { uid: { IN: deleteLocalData[m].map((d: any) => d.uid) } },
-                                    };
-                                }),
-                                sqlDB
-                            );
+                            let arrayOfTables: any[] = Object.keys(deleteLocalData).map((m: string) => {
+                                return {
+                                    table: m,
+                                    where: { uid: { IN: deleteLocalData[m].map((d: any) => d.uid) } },
+                                };
+                            });
+
+                            await this.httpService.request("DELETE", this.sortTables(Object.keys(models), arrayOfTables), sqlDB);
                         }
 
                         this.syncStage++;
@@ -265,13 +258,13 @@ export class SyncService {
      * @param sqlDB - DB for connection
      * @returns Object with data
      */
-    private getSyncData(config: UteStorageConfigs, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+    private getSyncData(config: UteStorageConfigs, models: any[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
-            console.log(111);
+            // console.log(111);
 
             try {
                 const ignoreList: string[] = [...(config.syncIgnore || []), ...["logs", "media", "deletes"]];
-                const jsons: UteApis<any>[] = Object.keys(config.models!)
+                const jsons: UteApis<any>[] = Object.keys(models)
                     .filter((m: string) => !ignoreList.some((ig: string) => m === ig))
                     .map((m: string) => {
                         return {
@@ -284,14 +277,27 @@ export class SyncService {
                             },
                         };
                     });
-                console.log(jsons);
+                // console.log(jsons);
 
                 const sendData: UteObjects = await this.httpService.request("GET", jsons, sqlDB);
-                console.log(JSON.stringify(sendData));
+                // console.log(JSON.stringify(sendData));
                 resolve(sendData);
             } catch (error) {
                 reject(error);
             }
         });
+    }
+
+    private sortTables(models: string[], tables: any[]): any[] {
+        // Create a lookup for the order of table values in inputArray
+        const tableOrder = Object.keys(models).reduce((acc: any, table: any, index: number) => {
+            acc[table] = index;
+            return acc;
+        }, {});
+
+        // Sort inputData based on the order defined in inputArray
+        const sortedData = tables.sort((a, b) => tableOrder[a.table] - tableOrder[b.table]);
+
+        return sortedData;
     }
 }

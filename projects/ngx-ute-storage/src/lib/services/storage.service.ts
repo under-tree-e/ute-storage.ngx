@@ -22,6 +22,7 @@ export class StorageService {
     private defaultDB: string = "";
     private platform: string = Capacitor.getPlatform();
     private requestDB: string = this.defaultDB;
+    private sortModelsList: any[] = [];
 
     constructor(@Inject("UteStorageConfig") private config: UteStorageConfigs, private http: HttpClient, private httpService: HttpService, private syncService: SyncService) {
         if (this.config) {
@@ -42,6 +43,8 @@ export class StorageService {
         this.config = config;
         this.defaultDB = this.config.name;
         this.config.environment!.storage = this;
+        this.sortModelsList = this.sortModels(config.models!);
+        console.log(this.sortModelsList);
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -80,7 +83,8 @@ export class StorageService {
     public migrate(update: boolean = false): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
-                let models: any = this.config.models;
+                let models: any = this.sortModelsList;
+                // this.config.models;
 
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
 
@@ -196,11 +200,11 @@ export class StorageService {
 
             if (this.config.syncName || this.config.environment.syncName) {
                 this.dbConnect(this.defaultDB).then((sqlDB: SQLiteDBConnection) => {
-                    this.syncService.sync(this.config, sqlDB).subscribe(async (res: SyncResponseData | null) => {
+                    this.syncService.sync(this.config, this.sortModelsList, sqlDB).subscribe(async (res: SyncResponseData | null) => {
                         if (res) {
                             obs.next(res);
                             if (res.close) {
-                                await this.closeConnection(this.defaultDB);
+                                // await this.closeConnection(this.defaultDB);
                                 obs.complete();
                             }
                         } else {
@@ -483,5 +487,93 @@ export class StorageService {
                 reject(`no connection open`);
             }
         });
+    }
+
+    /**
+     * Sort models by references
+     * @param models - Array of models
+     * @returns Sorted array of models
+     */
+    private sortModels(models: any) {
+        console.log(models);
+        // if (!Array.isArray(models)) {
+        //     models = Object.keys(models).map((key) => {
+        //         return { [key]: models[key] };
+        //     });
+        // }
+
+        let references: any = {};
+
+        // Separate objects with and without references
+        let withReferences: any[] = [];
+        let withoutReferences: any[] = [];
+
+        Object.keys(models).map((k: string) => {
+            const fields = models[k];
+
+            let hasReference = false;
+
+            for (const field in fields) {
+                if (fields[field].references) {
+                    hasReference = true;
+                    withReferences.push({ k, fields });
+
+                    if (!Array.isArray(references[k])) references[k] = [];
+                    references[k].push(fields[field].references.model);
+                }
+            }
+
+            if (!hasReference) {
+                withoutReferences.push({ k, fields });
+            }
+        });
+
+        // for (const obj of models) {
+        //     const modelName = Object.keys(obj)[0];
+        //     const fields = obj[modelName];
+
+        //     let hasReference = false;
+        //     for (const field in fields) {
+        //         console.log(field);
+
+        //         if (fields[field].references) {
+        //             hasReference = true;
+        //             withReferences.push({ modelName, fields });
+        //             console.log(modelName);
+        //             console.log(fields[field].references.model);
+
+        //             if (!Array.isArray(references[modelName])) references[modelName] = [];
+        //             references[modelName].push(fields[field].references.model);
+
+        //             // references.set(modelName, fields[field].references.model);
+        //             break;
+        //         }
+        //     }
+
+        //     if (!hasReference) {
+        //         withoutReferences.push({ modelName, fields });
+        //     }
+        // }
+
+        console.log(references);
+
+        // Sort objects with references
+        withReferences.sort((a, b) => {
+            const aRef = references[b.modelName].some((r: string) => r === a.modelName);
+            const bRef = references[a.modelName].some((r: string) => r === b.modelName);
+
+            // If both models have references, sort based on dependency
+            if (aRef && bRef) {
+                return aRef === b.modelName ? -1 : bRef === a.modelName ? 1 : 0;
+            }
+
+            return 0;
+        });
+        console.log(withoutReferences);
+        console.log(withReferences);
+        console.log([...withoutReferences.map((obj) => obj.modelName), ...withReferences.map((obj) => obj.modelName)]);
+
+        // Combine the sorted arrays
+        return [...withoutReferences.map((obj) => ({ [obj.modelName]: obj.fields })), ...withReferences.map((obj) => ({ [obj.modelName]: obj.fields }))];
     }
 }

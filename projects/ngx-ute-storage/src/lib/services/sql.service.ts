@@ -45,13 +45,15 @@ export class SqlService {
                         // console.log(s[n]);
 
                         if (s[n] === undefined) {
-                            vl.push(null);
+                            vl.push(`''`);
                         } else {
                             let val = s[n];
                             if (typeof val === "string") {
                                 val = `'${val}'`;
                             } else if (val instanceof Date) {
                                 val = `'${new Date(val).toISOString()}'`;
+                            } else {
+                                val = `''`;
                             }
                             vl.push(val);
                         }

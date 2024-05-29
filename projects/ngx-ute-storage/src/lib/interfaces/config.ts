@@ -22,6 +22,7 @@ export interface UteStorageConfigs {
     // db?: string;
     /**
      * Path to models files OR models object
+     * ATTENTION! Write models in order for REFERENCES
      * @defaultValue `assets/databases/model.json`
      */
     models?: string | UteObjects;

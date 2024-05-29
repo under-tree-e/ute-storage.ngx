@@ -141,7 +141,7 @@ export class HttpService {
                 let selectString: string = `SELECT ${sqlString.select || "*"} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`;
                 selectString = selectString.replace(/(\s{2,})/g, " ");
 
-                console.log("selectString", selectString);
+                // console.log("selectString", selectString);
                 let result: DBSQLiteValues = await sqlDB.query(selectString);
 
                 if (result.values && pragmaTables && pragmaTables.length > 0) {
@@ -197,7 +197,7 @@ export class HttpService {
                 let createString: string = `INSERT INTO ${apireq.table} ${sqlString.insert}`;
                 createString = createString.replace(/(\s{2,})/g, " ");
 
-                console.log(createString);
+                // console.log("createString", createString);
                 let result: any = await sqlDB.run(createString);
 
                 result = await this.getSql(
