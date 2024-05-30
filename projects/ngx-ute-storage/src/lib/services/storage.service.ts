@@ -83,9 +83,7 @@ export class StorageService {
     public migrate(update: boolean = false): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
-                let models: any = this.sortModelsList;
-                // this.config.models;
-
+                let models: any = this.config.models;
                 let isMainDB: boolean = await this.isDatabase(this.defaultDB);
 
                 if (!isMainDB || update) {
@@ -495,7 +493,7 @@ export class StorageService {
      * @returns Sorted array of models
      */
     private sortModels(models: any) {
-        console.log(models);
+        // console.log(models);
         // if (!Array.isArray(models)) {
         //     models = Object.keys(models).map((key) => {
         //         return { [key]: models[key] };
@@ -516,7 +514,9 @@ export class StorageService {
             for (const field in fields) {
                 if (fields[field].references) {
                     hasReference = true;
-                    withReferences.push({ k, fields });
+                    if (!withReferences.some((w: any) => w.k === k)) {
+                        withReferences.push({ k, fields });
+                    }
 
                     if (!Array.isArray(references[k])) references[k] = [];
                     references[k].push(fields[field].references.model);
@@ -555,25 +555,29 @@ export class StorageService {
         //     }
         // }
 
-        console.log(references);
+        // console.log(references);
 
         // Sort objects with references
         withReferences.sort((a, b) => {
-            const aRef = references[b.modelName].some((r: string) => r === a.modelName);
-            const bRef = references[a.modelName].some((r: string) => r === b.modelName);
+            // console.log(a);
+            // console.log(b);
 
-            // If both models have references, sort based on dependency
-            if (aRef && bRef) {
-                return aRef === b.modelName ? -1 : bRef === a.modelName ? 1 : 0;
-            }
+            // const aRef = references[b.k].some((r: string) => r === a.k);
+            // const bRef = references[a.k].some((r: string) => r === b.k);
 
-            return 0;
+            // if (aRef && bRef) {
+            //     return aRef === b.k ? -1 : bRef === a.k ? 1 : 0;
+            // }
+
+            return references[b.k].some((r: string) => r === a.k) ? -1 : 0;
+
+            // return 0;
         });
-        console.log(withoutReferences);
-        console.log(withReferences);
-        console.log([...withoutReferences.map((obj) => obj.modelName), ...withReferences.map((obj) => obj.modelName)]);
+        // console.log(withoutReferences);
+        // console.log(withReferences);
+        // console.log([...withoutReferences.map((obj) => obj.k), ...withReferences.map((obj) => obj.k)]);
 
         // Combine the sorted arrays
-        return [...withoutReferences.map((obj) => ({ [obj.modelName]: obj.fields })), ...withReferences.map((obj) => ({ [obj.modelName]: obj.fields }))];
+        return [...withoutReferences.map((obj) => obj.k), ...withReferences.map((obj) => obj.k)];
     }
 }
