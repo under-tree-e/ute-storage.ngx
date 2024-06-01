@@ -113,6 +113,7 @@ export enum UteQuerySysParams {
 export enum UteQueryWRParams {
     and = "AND",
     not = "NOT",
+    is = "IS",
     or = "OR",
 
     in = "IN",

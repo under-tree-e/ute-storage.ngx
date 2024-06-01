@@ -263,6 +263,10 @@ export class SqlService {
             } else {
                 if (key === UteQueryWRParams.lik || key === UteQueryWRParams.likN) {
                     topLevelConditions.push(`${key} '${data[key]}'`);
+                } else if (key === UteQueryWRParams.not) {
+                    topLevelConditions.push(`IS ${key} '${data[key]}'`);
+                } else if (key === UteQueryWRParams.is) {
+                    topLevelConditions.push(`${key} '${data[key]}'`);
                 } else if (key === UteQueryWRParams.gt || key === UteQueryWRParams.gte || key === UteQueryWRParams.lt || key === UteQueryWRParams.lte) {
                     switch (key) {
                         case UteQueryWRParams.gt:
