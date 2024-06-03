@@ -196,7 +196,7 @@ export class StorageService {
         return new Observable((obs: any) => {
             console.log(this.config);
 
-            if (this.config.syncName || this.config.environment.syncName) {
+            if ((this.config.sync && this.config.sync?.value) || this.config.environment.syncName) {
                 this.dbConnect(this.defaultDB).then((sqlDB: SQLiteDBConnection) => {
                     this.syncService.sync(this.config, this.sortModelsList, sqlDB).subscribe(async (res: SyncResponseData | null) => {
                         if (res) {

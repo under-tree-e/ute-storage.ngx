@@ -66,23 +66,23 @@ export class SyncService {
                 const func = async () => {
                     await this.generateOptions();
 
-                    if (!config.syncServer) config.syncServer = config.environment.server;
-                    if (!config.syncField) config.syncField = "createdBy";
-                    if (!config.syncName) config.syncName = config.environment.syncName;
-                    if (!config.syncDate) config.syncDate = config.environment.syncDate;
+                    if (!config.sync!.server) config.sync!.server = config.environment.server;
+                    if (!config.sync!.field) config.sync!.field = "createdBy";
+                    if (!config.sync!.value) config.sync!.value = config.environment.sync!.value;
+                    if (!config.sync!.date) config.sync!.date = config.environment.sync!.date;
 
-                    if (!config.syncName) {
+                    if (!config.sync!.value) {
                         throw false;
                     }
 
-                    const serverUrl: string = `${config.syncServer}${config.syncServer?.endsWith("/") ? "api/" : "/api/"}`;
+                    const serverUrl: string = `${config.sync!.server}${config.sync!.server?.endsWith("/") ? "api/" : "/api/"}`;
 
                     console.log({
                         type: "init",
-                        field: config.syncField,
-                        name: config.syncName,
-                        date: config.syncDate,
-                        ignore: config.syncIgnore,
+                        field: config.sync!.field,
+                        name: config.sync!.value,
+                        date: config.sync!.date,
+                        ignore: config.sync!.ignore,
                     });
 
                     const serverData: any = await lastValueFrom(
@@ -90,10 +90,10 @@ export class SyncService {
                             `${serverUrl}sync`,
                             {
                                 type: "init",
-                                field: config.syncField,
-                                name: config.syncName,
-                                date: config.syncDate,
-                                ignore: config.syncIgnore,
+                                field: config.sync!.field,
+                                name: config.sync!.value,
+                                date: config.sync!.date,
+                                ignore: config.sync!.ignore,
                             },
                             this.options
                         )
@@ -110,9 +110,9 @@ export class SyncService {
                         this.syncStages = 6;
                         obs.next({ status: SyncStatusList.syncGet, stage: `${this.syncStage} / ${this.syncStages}` });
 
-                        const serverDate: Date | null = serverData.syncDate ? new Date(serverData.syncDate) : null;
-                        const localDate: Date | null = config.syncDate ? new Date(config.syncDate) : null;
-                        delete serverData.syncDate;
+                        const serverDate: Date | null = serverData.sync!.date ? new Date(serverData.sync!.date) : null;
+                        const localDate: Date | null = config.sync!.date ? new Date(config.sync!.date) : null;
+                        delete serverData.sync!.date;
 
                         let createLocalData: UteObjects = {};
                         let updateLocalData: UteObjects = {};
@@ -138,7 +138,7 @@ export class SyncService {
 
                                 if (createArr.length) {
                                     createLocalData[n] = createArr.map((d: any) => {
-                                        d.createdBy = config.syncName;
+                                        d.createdBy = config.sync!.value;
                                         return d;
                                     });
                                 }
@@ -146,7 +146,7 @@ export class SyncService {
                                 const updateArr = serverData[n].filter((sd: any) => localData[n].some((ld: any) => ld.uid === sd.uid));
                                 if (updateArr.length) {
                                     updateLocalData[n] = updateArr.map((d: any) => {
-                                        d.createdBy = config.syncName;
+                                        d.createdBy = config.sync!.value;
                                         return d;
                                     });
                                 }
@@ -155,7 +155,7 @@ export class SyncService {
                                     const deleteArr = localData[n].filter((sd: any) => !serverData[n].some((ld: any) => ld.uid === sd.uid));
                                     if (deleteArr.length) {
                                         deleteLocalData[n] = deleteArr.map((d: any) => {
-                                            d.createdBy = config.syncName;
+                                            d.createdBy = config.sync!.value;
                                             return d;
                                         });
                                     }
@@ -176,8 +176,8 @@ export class SyncService {
                             }
                             if (returnArr.length) {
                                 returnServerData[n] = returnArr.map((d: any) => {
-                                    d.createdBy = config.syncName;
-                                    d.updatedBy = config.syncName;
+                                    d.createdBy = config.sync!.value;
+                                    d.updatedBy = config.sync!.value;
                                     return d;
                                 });
                             }
@@ -200,8 +200,8 @@ export class SyncService {
                                 return {
                                     table: m,
                                     select: createLocalData[m].map((d: any) => {
-                                        d.createdBy = config.syncName;
-                                        d.updatedBy = config.syncName;
+                                        d.createdBy = config.sync!.value;
+                                        d.updatedBy = config.sync!.value;
                                         return d;
                                     }),
                                 };
@@ -217,8 +217,8 @@ export class SyncService {
                                 return {
                                     table: m,
                                     select: updateLocalData[m].map((d: any) => {
-                                        d.createdBy = config.syncName;
-                                        d.updatedBy = config.syncName;
+                                        d.createdBy = config.sync!.value;
+                                        d.updatedBy = config.sync!.value;
                                         return d;
                                     }),
                                     where: { uid: { IN: updateLocalData[m].map((d: any) => d.uid) } },
@@ -250,7 +250,7 @@ export class SyncService {
                                 `${serverUrl}sync`,
                                 {
                                     type: "update",
-                                    data: [returnServerData, deleteServerData, config.syncName],
+                                    data: [returnServerData, deleteServerData, config.sync!.value],
                                 },
                                 this.options
                             )
@@ -261,8 +261,8 @@ export class SyncService {
                                 return {
                                     table: m,
                                     select: {
-                                        createdBy: config.syncName,
-                                        updatedBy: config.syncName,
+                                        createdBy: config.sync!.value,
+                                        updatedBy: config.sync!.value,
                                     },
                                     where: { OR: [{ createdBy: "" }, { updatedBy: "" }] },
                                 };
@@ -281,12 +281,12 @@ export class SyncService {
                                     select: {
                                         syncDate: newDate.toISOString(),
                                     },
-                                    where: { uuid: config.syncName },
+                                    where: { [config.sync!.field]: config.sync!.value },
                                 },
                             ],
                             sqlDB
                         );
-                        config.syncDate = newDate;
+                        config.sync!.date = newDate;
 
                         this.syncStage++;
                         obs.next({ status: SyncStatusList.syncComplete, stage: `${this.syncStage} / ${this.syncStages}`, close: true });
@@ -318,14 +318,14 @@ export class SyncService {
     private getSyncData(config: UteStorageConfigs, localDate: Date | null, serverDate: Date | null, models: any[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
-                const ignoreList: string[] = [...(config.syncIgnore || []), ...["logs", "media", "deletes"]];
+                const ignoreList: string[] = [...(config.sync!.ignore || []), ...["logs", "media", "deletes"]];
                 const jsons: UteApis<any>[] = Object.keys(config.models!)
                     .filter((m: string) => !ignoreList.some((ig: string) => m === ig))
                     .map((m: string) => {
                         let json = {
                             table: m,
                             where: {
-                                AND: [{ [config.syncField!]: { IN: [config.syncName, ""] } }],
+                                AND: [{ [config.sync!.field!]: { IN: [config.sync!.value, ""] } }],
                             },
                         };
 

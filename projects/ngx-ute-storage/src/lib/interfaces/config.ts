@@ -1,4 +1,5 @@
 import { UteObjects } from "./object";
+import { SyncConfigData } from "./sync";
 
 /**
  * Ute Storage Configs Params
@@ -31,32 +32,36 @@ export interface UteStorageConfigs {
      */
     environment: { storage: any } | any;
     /**
-     * Link to server for sync data
-     * @default `environment.server`
+     * Sync configs
      */
-    syncServer?: string;
-    /**
-     * Date of last app sync to server
-     * @default `environment.syncDate`
-     *
-     * Attention! Need to be updated when user `SignIn`
-     */
-    syncDate?: Date;
-    /**
-     * Name of filed for values search
-     * @default `createdBy`
-     */
-    syncField?: string;
-    /**
-     * Name of values for search beetwen server & app
-     * @default `environment.syncName`
-     *
-     * Attention! Need to be updated when user `SignIn`
-     */
-    syncName?: string;
-    /**
-     * List of model to ignore
-     * @default `logs`, `media`
-     */
-    syncIgnore?: string[];
+    sync?: SyncConfigData;
+    // /**
+    //  * Link to server for sync data
+    //  * @default `environment.server`
+    //  */
+    // syncServer?: string;
+    // /**
+    //  * Date of last app sync to server
+    //  * @default `environment.syncDate`
+    //  *
+    //  * Attention! Need to be updated when user `SignIn`
+    //  */
+    // syncDate?: Date;
+    // /**
+    //  * Name of filed for values search
+    //  * @default `createdBy`
+    //  */
+    // syncField?: string;
+    // /**
+    //  * Name of values for search beetwen server & app
+    //  * @default `environment.syncName`
+    //  *
+    //  * Attention! Need to be updated when user `SignIn`
+    //  */
+    // syncName?: string;
+    // /**
+    //  * List of model to ignore
+    //  * @default `logs`, `media`
+    //  */
+    // syncIgnore?: string[];
 }
