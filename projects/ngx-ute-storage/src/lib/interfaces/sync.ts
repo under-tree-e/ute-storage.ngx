@@ -39,6 +39,10 @@ export interface SyncResponseData {
     close?: boolean;
 }
 
+export interface SyncData {
+    syncDate?: Date;
+}
+
 export enum SyncStatusList {
     syncCheck = "syncCheck",
     syncGet = "syncGet",
@@ -52,5 +56,11 @@ export enum SyncStatusList {
 export const SyncDataModel = {
     syncDate: {
         type: UteModelTypes.date,
+    },
+};
+
+export const SessionDataModel = {
+    authToken: {
+        type: UteModelTypes.str,
     },
 };
