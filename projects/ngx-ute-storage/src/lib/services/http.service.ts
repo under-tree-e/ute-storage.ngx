@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { DBSQLiteValues, SQLiteDBConnection } from "@capacitor-community/sqlite";
 import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
-import { UteQueryStrings, UteQuerySysParams } from "../interfaces/query";
+import { UteQueryStrings } from "../interfaces/query";
 import { SqlService } from "./sql.service";
 import { v4 } from "uuid";
 import { ApiConst } from "../contantes/api";
@@ -22,7 +22,7 @@ export class HttpService {
      * @param dbName - DB name
      * @returns object with array of request datas
      */
-    public request(method: string, apireq: UteApis[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+    public request(method: string, apireq: UteApis[], models: UteObjects, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         apireq = apireq.map((rq: any) => {
             let newObject = Object.entries(rq).map(([key, value]) => {
                 let newKey: string = key;
@@ -94,7 +94,7 @@ export class HttpService {
                         req.select = filterSelect;
                     }
 
-                    let storageResult: UteObjects = await this.stMethod(req, sqlDB);
+                    let storageResult: UteObjects = await this.stMethod(req, models, sqlDB);
                     result = mergeObjects(result, storageResult);
                 }
 
@@ -112,9 +112,11 @@ export class HttpService {
      * @param dbName
      * @returns
      */
-    private getSql(apireq: UteApis, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+    private getSql(apireq: UteApis, models: UteObjects, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
+                // console.log(apireq);
+
                 let refData: string = "";
                 let pragmaList: any = {};
                 let pragmaTables: string[] = [];
@@ -144,12 +146,24 @@ export class HttpService {
                 // console.log("selectString", selectString);
                 let result: DBSQLiteValues = await sqlDB.query(selectString);
 
+                if (Array.isArray(models[apireq.table!]._secure) && result.values) {
+                    models[apireq.table!]._secure.map((sf: string) => {
+                        result.values!.map((item: any) => {
+                            delete item[sf];
+                        });
+                    });
+                }
+
                 if (result.values && pragmaTables && pragmaTables.length > 0) {
                     let newResult: UteObjects[] = this.convertToObjects(result.values, pragmaTables);
                     resolve({ [apireq.table as string]: await this.converter(apireq.table!, newResult, sqlDB, pragmaTables) });
                 } else if (result.values) {
                     if (sqlString.select?.includes("COUNT")) {
-                        resolve({ [(apireq.table as string) + "Count"]: result.values[0]["COUNT(*)"] });
+                        if (sqlString.select.toLocaleUpperCase() === "COUNT") {
+                            resolve({ [(apireq.table as string) + "Count"]: result.values[0]["COUNT(*)"] });
+                        } else {
+                            resolve({ [(apireq.table as string) + "Count"]: result.values[0][sqlString.select] });
+                        }
                     } else {
                         resolve({ [apireq.table as string]: await this.converter(apireq.table!, result.values, sqlDB) });
                     }
@@ -169,7 +183,7 @@ export class HttpService {
      * @param dbName
      * @returns
      */
-    private postSql(apireq: UteApis, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+    private postSql(apireq: UteApis, models: UteObjects, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!Array.isArray(apireq.select)) {
@@ -193,6 +207,33 @@ export class HttpService {
                     }
                 });
 
+                if (Array.isArray(models[apireq.table!]._stamp)) {
+                    const stamps: any = models[apireq.table!]._stamp;
+                    if (stamps.time && typeof stamps.time === "boolean") {
+                        (apireq.select as any).createdAt = new Date().toISOString();
+                    } else if (stamps.time && typeof stamps.time === "object") {
+                        if (stamps.time.createdAt) {
+                            if (typeof stamps.time.createdAt === "string") {
+                                (apireq.select as any)[stamps.time.createdAt] = new Date().toISOString();
+                            } else {
+                                (apireq.select as any).createdAt = new Date().toISOString();
+                            }
+                        }
+                    }
+
+                    if (stamps.user && typeof stamps.user === "boolean") {
+                        (apireq.select as any).createdBy = apireq.user;
+                    } else if (stamps.user && typeof stamps.user === "object") {
+                        if (stamps.user.createdBy) {
+                            if (typeof stamps.user.createdBy === "string") {
+                                (apireq.select as any)[stamps.user.createdBy] = apireq.user;
+                            } else {
+                                (apireq.select as any).createdBy = apireq.user;
+                            }
+                        }
+                    }
+                }
+
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq, resultPR.values);
                 let createString: string = `INSERT INTO ${apireq.table} ${sqlString.insert}`;
                 createString = createString.replace(/(\s{2,})/g, " ");
@@ -207,8 +248,17 @@ export class HttpService {
                             id: result.changes.lastId,
                         },
                     },
+                    models,
                     sqlDB
                 );
+
+                if (Array.isArray(models[apireq.table!]._secure) && result.values) {
+                    models[apireq.table!]._secure.map((sf: string) => {
+                        result.values!.map((item: any) => {
+                            delete item[sf];
+                        });
+                    });
+                }
 
                 resolve(result);
             } catch (error) {
@@ -224,13 +274,41 @@ export class HttpService {
      * @param dbName
      * @returns
      */
-    private putSql(apireq: UteApis, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+    private putSql(apireq: UteApis, models: UteObjects, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (Array.isArray(apireq.select)) {
                     reject("request not object");
                     return;
                 }
+
+                if (Array.isArray(models[apireq.table!]._stamp)) {
+                    const stamps: any = models[apireq.table!]._stamp;
+                    if (stamps.time && typeof stamps.time === "boolean") {
+                        (apireq.select as any).updatedAt = new Date().toISOString();
+                    } else if (stamps.time && typeof stamps.time === "object") {
+                        if (stamps.time.updatedAt) {
+                            if (typeof stamps.time.updatedAt === "string") {
+                                (apireq.select as any)[stamps.time.updatedAt] = new Date().toISOString();
+                            } else {
+                                (apireq.select as any).updatedAt = new Date().toISOString();
+                            }
+                        }
+                    }
+
+                    if (stamps.user && typeof stamps.user === "boolean") {
+                        (apireq.select as any).updatedBy = apireq.user;
+                    } else if (stamps.user && typeof stamps.user === "object") {
+                        if (stamps.user.updatedBy) {
+                            if (typeof stamps.user.updatedBy === "string") {
+                                (apireq.select as any)[stamps.user.updatedBy] = apireq.user;
+                            } else {
+                                (apireq.select as any).updatedBy = apireq.user;
+                            }
+                        }
+                    }
+                }
+
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
                 let updateString: string = `UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`;
                 updateString = updateString.replace(/(\s{2,})/g, " ");
@@ -254,7 +332,7 @@ export class HttpService {
      * @param dbName
      * @returns
      */
-    private deleteSql(apireq: UteApis, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+    private deleteSql(apireq: UteApis, models: UteObjects, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (Array.isArray(apireq.select)) {

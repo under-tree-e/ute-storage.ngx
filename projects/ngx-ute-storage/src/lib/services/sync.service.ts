@@ -19,6 +19,7 @@ export class SyncService {
     } = {};
     private syncStages: number = 2;
     private syncStage: number = 1;
+    private authToken: string = "";
 
     constructor(private http: HttpClient, private httpService: HttpService) {}
 
@@ -41,6 +42,9 @@ export class SyncService {
                         ),
                     }),
                 };
+                if (this.authToken) {
+                    this.options.headers = this.options.headers?.set("Authorization", `Bearer ${this.authToken}`);
+                }
                 resolve(true);
             } catch (error) {
                 reject(error);
@@ -57,19 +61,20 @@ export class SyncService {
     public sync(config: UteStorageConfigs, models: any[], sqlDB: SQLiteDBConnection): Observable<SyncResponseData | null> {
         // console.log("config", config);
         return new Observable((obs) => {
-            // console.log(111);
+            console.log(111);
             this.syncStages = 2;
             this.syncStage = 1;
+            this.authToken = config.environment.session.authToken;
 
             obs.next({ status: SyncStatusList.syncCheck, stage: `${this.syncStage} / ${this.syncStages}` });
             try {
                 const func = async () => {
                     await this.generateOptions();
 
-                    if (!config.sync!.server) config.sync!.server = config.environment.server;
+                    if (!config.sync!.server) config.sync!.server = config.environment.appServer;
                     if (!config.sync!.field) config.sync!.field = "createdBy";
-                    if (!config.sync!.value) config.sync!.value = config.environment.sync!.value;
-                    if (!config.sync!.date) config.sync!.date = config.environment.sync!.date;
+                    if (!config.sync!.value) config.sync!.value = config.environment.session!.uuid;
+                    if (!config.sync!.date) config.sync!.date = config.environment.session!.syncDate;
 
                     if (!config.sync!.value) {
                         throw false;
@@ -84,6 +89,7 @@ export class SyncService {
                         date: config.sync!.date,
                         ignore: config.sync!.ignore,
                     });
+                    console.log(config.sync);
 
                     const serverData: any = await lastValueFrom(
                         this.http.post(
@@ -208,7 +214,7 @@ export class SyncService {
                             });
                             console.log(this.sortTables(models, arrayOfTables));
 
-                            await this.httpService.request("POST", this.sortTables(models, arrayOfTables), sqlDB);
+                            await this.httpService.request("POST", this.sortTables(models, arrayOfTables), config.models, sqlDB);
                         }
 
                         console.log(updateLocalData);
@@ -226,7 +232,7 @@ export class SyncService {
                             });
                             console.log(this.sortTables(models, arrayOfTables));
 
-                            await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), sqlDB);
+                            await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), config.models, sqlDB);
                         }
 
                         console.log(deleteLocalData);
@@ -239,7 +245,7 @@ export class SyncService {
                             });
                             // console.log(this.sortTables(models, arrayOfTables, true));
 
-                            await this.httpService.request("DELETE", this.sortTables(models, arrayOfTables, true), sqlDB);
+                            await this.httpService.request("DELETE", this.sortTables(models, arrayOfTables, true), config.models, sqlDB);
                         }
 
                         this.syncStage++;
@@ -269,7 +275,7 @@ export class SyncService {
                             });
                             console.log(this.sortTables(models, arrayOfTables));
 
-                            await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), sqlDB);
+                            await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), config.models, sqlDB);
                         }
 
                         const newDate: Date = serverDate ? serverDate! : new Date();
@@ -284,6 +290,7 @@ export class SyncService {
                                     where: { [config.sync!.field]: config.sync!.value },
                                 },
                             ],
+                            config.models,
                             sqlDB
                         );
                         config.sync!.date = newDate;
@@ -319,7 +326,11 @@ export class SyncService {
         return new Promise(async (resolve, reject) => {
             try {
                 const ignoreList: string[] = [...(config.sync!.ignore || []), ...["logs", "media", "deletes"]];
-                const jsons: UteApis<any>[] = Object.keys(config.models!)
+                const models = Object.entries(config.models!).reduce((acc: any, [key, value]) => {
+                    acc[key] = value._model;
+                    return acc;
+                }, {});
+                const jsons: UteApis<any>[] = Object.keys(models!)
                     .filter((m: string) => !ignoreList.some((ig: string) => m === ig))
                     .map((m: string) => {
                         let json = {
@@ -343,7 +354,7 @@ export class SyncService {
                     });
                 // console.log(jsons);
 
-                const sendData: UteObjects = await this.httpService.request("GET", this.sortTables(models, jsons), sqlDB);
+                const sendData: UteObjects = await this.httpService.request("GET", this.sortTables(models, jsons), config.models, sqlDB);
                 // console.log(JSON.stringify(sendData, null, 2));
                 resolve(sendData);
             } catch (error) {

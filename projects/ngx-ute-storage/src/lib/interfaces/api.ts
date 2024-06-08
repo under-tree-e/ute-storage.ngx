@@ -9,6 +9,7 @@ import { UteObjects } from "./object";
  * @prop {@link UteApis.order | order}?: `UteObjects` - Values to order returned data from table
  * @prop {@link UteApis.limit | limit}?: `UteObjects` - Limit number of returned values
  * @prop {@link UteApis.noref | noref}?: `boolean` - Do not add REFERENSE tables to query result *IF IT ISSETS*
+ * @prop {@link UteApis.user | user}?: `boolean` - User uuid for UserStamp
  */
 export interface UteApis<T = any> {
     /**
@@ -64,4 +65,8 @@ export interface UteApis<T = any> {
      * *`ATTENTION`: Not work with `method`*
      */
     noref?: boolean;
+    /**
+     * User uuid for UserStamp
+     */
+    user?: string;
 }

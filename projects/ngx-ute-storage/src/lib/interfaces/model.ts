@@ -68,3 +68,18 @@ export enum UteModelDefaultValues {
     date = "@DATE",
     fiof = "@FIRSTOF",
 }
+
+export interface ModelStampData {
+    time?:
+        | boolean
+        | {
+              createdAt: boolean | string;
+              updatedAt: boolean | string;
+          };
+    user?:
+        | boolean
+        | {
+              createdBy: boolean | string;
+              updatedBy: boolean | string;
+          };
+}

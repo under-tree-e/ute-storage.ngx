@@ -83,8 +83,12 @@ export class StorageService {
     public migrate(update: boolean = false): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
             try {
-                let models: any = this.config.models;
-                let isMainDB: boolean = await this.isDatabase(this.defaultDB);
+                const models = Object.entries(this.config.models!).reduce((acc: any, [key, value]) => {
+                    acc[key] = value._model;
+                    return acc;
+                }, {});
+
+                const isMainDB: boolean = await this.isDatabase(this.defaultDB);
 
                 if (!isMainDB || update) {
                     console.log("Storage Build Start");
@@ -196,7 +200,10 @@ export class StorageService {
         return new Observable((obs: any) => {
             console.log(this.config);
 
-            if ((this.config.sync && this.config.sync?.value) || this.config.environment.syncName) {
+            console.log(this.config);
+            console.log(this.config.sync);
+
+            if ((this.config.sync && this.config.sync?.value) || this.config.environment.session) {
                 this.dbConnect(this.defaultDB).then((sqlDB: SQLiteDBConnection) => {
                     this.syncService.sync(this.config, this.sortModelsList, sqlDB).subscribe(async (res: SyncResponseData | null) => {
                         if (res) {
@@ -212,6 +219,7 @@ export class StorageService {
                     });
                 });
             } else {
+                console.error("Empty sync parameters");
                 obs.next(null);
                 obs.complete();
             }
@@ -232,8 +240,19 @@ export class StorageService {
                     dbName = this.defaultDB;
                 }
 
+                apireq.map((a: UteApis) => {
+                    if (!a.user && this.config.environment.session) {
+                        a.user = this.config.environment.session.uuid;
+                    }
+                });
+
                 let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
-                let sqlResult: UteObjects = await this.httpService.request(method, apireq, sqlDB);
+                let sqlResult: UteObjects = await this.httpService.request(method, apireq, this.config.models, sqlDB);
+
+                // if(method !== "GET"){
+                //     this.config.environment.session.syncDate
+                // }
+
                 resolve(sqlResult);
             } catch (error: any) {
                 reject(error);
@@ -492,13 +511,16 @@ export class StorageService {
      * @param models - Array of models
      * @returns Sorted array of models
      */
-    private sortModels(models: any) {
-        // console.log(models);
-        // if (!Array.isArray(models)) {
-        //     models = Object.keys(models).map((key) => {
-        //         return { [key]: models[key] };
-        //     });
-        // }
+    private sortModels(storage: any) {
+        let models: any = {};
+
+        if (JSON.stringify(storage).includes("_model")) {
+            Object.keys(storage).map((s: any) => {
+                models[s] = storage[s]._model;
+            });
+        } else {
+            models = JSON.parse(JSON.stringify(storage));
+        }
 
         let references: any = {};
 
@@ -528,54 +550,10 @@ export class StorageService {
             }
         });
 
-        // for (const obj of models) {
-        //     const modelName = Object.keys(obj)[0];
-        //     const fields = obj[modelName];
-
-        //     let hasReference = false;
-        //     for (const field in fields) {
-        //         console.log(field);
-
-        //         if (fields[field].references) {
-        //             hasReference = true;
-        //             withReferences.push({ modelName, fields });
-        //             console.log(modelName);
-        //             console.log(fields[field].references.model);
-
-        //             if (!Array.isArray(references[modelName])) references[modelName] = [];
-        //             references[modelName].push(fields[field].references.model);
-
-        //             // references.set(modelName, fields[field].references.model);
-        //             break;
-        //         }
-        //     }
-
-        //     if (!hasReference) {
-        //         withoutReferences.push({ modelName, fields });
-        //     }
-        // }
-
-        // console.log(references);
-
         // Sort objects with references
         withReferences.sort((a, b) => {
-            // console.log(a);
-            // console.log(b);
-
-            // const aRef = references[b.k].some((r: string) => r === a.k);
-            // const bRef = references[a.k].some((r: string) => r === b.k);
-
-            // if (aRef && bRef) {
-            //     return aRef === b.k ? -1 : bRef === a.k ? 1 : 0;
-            // }
-
             return references[b.k].some((r: string) => r === a.k) ? -1 : 0;
-
-            // return 0;
         });
-        // console.log(withoutReferences);
-        // console.log(withReferences);
-        // console.log([...withoutReferences.map((obj) => obj.k), ...withReferences.map((obj) => obj.k)]);
 
         // Combine the sorted arrays
         return [...withoutReferences.map((obj) => obj.k), ...withReferences.map((obj) => obj.k)];

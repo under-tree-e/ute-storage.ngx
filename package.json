@@ -1,7 +1,7 @@
 {
   "name": "ute-storage.ngx",
   "title": "UTE Storage",
-  "version": "0.1.6-dev.11",
+  "version": "0.1.6-dev.12",
   "description": "Angular Storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "author": {
     "name": "Under Tree Entertainment",
@@ -66,7 +66,6 @@
     "@angular/cli": "~16.1.6",
     "@angular/compiler-cli": "^16.1.0",
     "@types/jasmine": "~4.3.0",
-    "@types/node": "^20.9.0",
     "angular-cli-ghpages": "^2.0.0-beta.2",
     "clear-folder": "^5.0.0",
     "jasmine-core": "~4.6.0",
