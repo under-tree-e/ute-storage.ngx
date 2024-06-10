@@ -160,7 +160,7 @@ export class StorageService {
                     }
                     await this.closeConnection(this.defaultDB);
 
-                    if (!isMainDB) {
+                    if (!isMainDB || update) {
                         await this.copyFromAssets();
                     }
                 }

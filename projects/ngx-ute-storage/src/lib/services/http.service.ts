@@ -146,7 +146,7 @@ export class HttpService {
                 // console.log("selectString", selectString);
                 let result: DBSQLiteValues = await sqlDB.query(selectString);
 
-                if (Array.isArray(models[apireq.table!]._secure) && result.values) {
+                if (models[apireq.table!] && Array.isArray(models[apireq.table!]._secure) && result.values) {
                     models[apireq.table!]._secure.map((sf: string) => {
                         result.values!.map((item: any) => {
                             delete item[sf];
