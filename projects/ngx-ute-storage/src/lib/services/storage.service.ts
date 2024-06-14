@@ -402,6 +402,15 @@ export class StorageService {
             }
             try {
                 await this.sqlite.saveToLocalDisk(this.defaultDB);
+                // lastValueFrom(this.http.get("assets/databases/databases.json"))
+                //     .then((response: any) => {
+                //         if (response.databaseList && response.databaseList.length) {
+                //             response.databaseList.map(async (d: string) => {
+                //                 await this.sqlite.saveToLocalDisk(d.split("SQLite.db")[0]);
+                //             });
+                //         }
+                //     })
+                //     .catch(() => {});
                 resolve();
             } catch (error) {
                 reject(error);

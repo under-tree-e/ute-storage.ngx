@@ -9,7 +9,7 @@ export interface SyncConfigData {
     server?: string;
     /**
      * Date of last app sync to server
-     * @default `environment.syncDate`
+     * @default `environment.session.syncDate`
      *
      * Attention! Need to be updated when user `SignIn`
      */
@@ -21,7 +21,7 @@ export interface SyncConfigData {
     field?: string;
     /**
      * Name of values for search beetwen server & app
-     * @default `environment.syncName`
+     * @default `environment.session.uuid`
      *
      * Attention! Need to be updated when user `SignIn`
      */
@@ -31,6 +31,11 @@ export interface SyncConfigData {
      * @default `logs`, `media`
      */
     ignore?: string[];
+    /**
+     * Last local data update
+     * @default `environment.session.lastDate`
+     */
+    last?: Date;
 }
 
 export interface SyncResponseData {
@@ -41,6 +46,7 @@ export interface SyncResponseData {
 
 export interface SyncData {
     syncDate?: Date;
+    lastDate?: Date;
 }
 
 export enum SyncStatusList {

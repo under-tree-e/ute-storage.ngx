@@ -115,8 +115,6 @@ export class HttpService {
     private getSql(apireq: UteApis, models: UteObjects, sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
-                // console.log(apireq);
-
                 let refData: string = "";
                 let pragmaList: any = {};
                 let pragmaTables: string[] = [];
@@ -143,7 +141,7 @@ export class HttpService {
                 let selectString: string = `SELECT ${sqlString.select || "*"} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`;
                 selectString = selectString.replace(/(\s{2,})/g, " ");
 
-                console.log("selectString", selectString);
+                // console.log("selectString", selectString);
                 let result: DBSQLiteValues = await sqlDB.query(selectString);
 
                 if (models[apireq.table!] && Array.isArray(models[apireq.table!]._secure) && result.values) {
@@ -207,12 +205,8 @@ export class HttpService {
                     }
                 });
 
-                console.log(apireq);
-                console.log(models);
-
                 if (models[apireq.table!] && typeof models[apireq.table!]._stamp === "object") {
                     const stamps: any = models[apireq.table!]._stamp;
-                    console.log(stamps);
                     if (stamps.time && typeof stamps.time === "boolean") {
                         apireq.select.map((s: any) => {
                             s.createdAt = new Date().toISOString();
@@ -243,38 +237,38 @@ export class HttpService {
                         }
                     }
 
-                    if (stamps.user && typeof stamps.user === "boolean") {
-                        apireq.select.map((s: any) => {
-                            s.createdBy = apireq.user;
-                            s.updatedBy = apireq.user;
-                        });
-                    } else if (stamps.user && typeof stamps.user === "object") {
-                        if (stamps.user.createdBy) {
-                            if (typeof stamps.user.createdBy === "string") {
-                                apireq.select.map((s: any) => {
-                                    s[stamps.time.createdBy] = apireq.user;
-                                });
-                            } else {
-                                apireq.select.map((s: any) => {
-                                    s.createdBy = apireq.user;
-                                });
+                    if (apireq.user) {
+                        if (stamps.user && typeof stamps.user === "boolean") {
+                            apireq.select.map((s: any) => {
+                                s.createdBy = apireq.user;
+                                s.updatedBy = apireq.user;
+                            });
+                        } else if (stamps.user && typeof stamps.user === "object") {
+                            if (stamps.user.createdBy) {
+                                if (typeof stamps.user.createdBy === "string") {
+                                    apireq.select.map((s: any) => {
+                                        s[stamps.time.createdBy] = apireq.user;
+                                    });
+                                } else {
+                                    apireq.select.map((s: any) => {
+                                        s.createdBy = apireq.user;
+                                    });
+                                }
                             }
-                        }
-                        if (stamps.user.updatedBy) {
-                            if (typeof stamps.user.updatedBy === "string") {
-                                apireq.select.map((s: any) => {
-                                    s[stamps.time.updatedBy] = apireq.user;
-                                });
-                            } else {
-                                apireq.select.map((s: any) => {
-                                    s.updatedBy = apireq.user;
-                                });
+                            if (stamps.user.updatedBy) {
+                                if (typeof stamps.user.updatedBy === "string") {
+                                    apireq.select.map((s: any) => {
+                                        s[stamps.time.updatedBy] = apireq.user;
+                                    });
+                                } else {
+                                    apireq.select.map((s: any) => {
+                                        s.updatedBy = apireq.user;
+                                    });
+                                }
                             }
                         }
                     }
                 }
-
-                console.log(apireq);
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq, resultPR.values);
                 let createString: string = `INSERT INTO ${apireq.table} ${sqlString.insert}`;
@@ -282,6 +276,11 @@ export class HttpService {
 
                 console.log("createString", createString);
                 let result: any = await sqlDB.run(createString);
+                // console.log(JSON.stringify(result));
+                // console.log(sqlDB);
+                // if(sqlDB.dbName = 'media'){
+
+                // }
 
                 result = await this.getSql(
                     {
@@ -324,6 +323,8 @@ export class HttpService {
                     return;
                 }
 
+                console.log(JSON.stringify(apireq));
+
                 if (models[apireq.table!] && typeof models[apireq.table!]._stamp === "object") {
                     const stamps: any = models[apireq.table!]._stamp;
                     if (stamps.time && typeof stamps.time === "boolean") {
@@ -338,27 +339,26 @@ export class HttpService {
                         }
                     }
 
-                    if (stamps.user && typeof stamps.user === "boolean") {
-                        apireq.select.updatedBy = apireq.user;
-                    } else if (stamps.user && typeof stamps.user === "object") {
-                        if (stamps.user.updatedBy) {
-                            if (typeof stamps.user.updatedBy === "string") {
-                                apireq.select[stamps.time.updatedBy] = apireq.user;
-                            } else {
-                                apireq.select.updatedBy = apireq.user;
+                    if (apireq.user) {
+                        if (stamps.user && typeof stamps.user === "boolean") {
+                            apireq.select.updatedBy = apireq.user;
+                        } else if (stamps.user && typeof stamps.user === "object") {
+                            if (stamps.user.updatedBy) {
+                                if (typeof stamps.user.updatedBy === "string") {
+                                    apireq.select[stamps.time.updatedBy] = apireq.user;
+                                } else {
+                                    apireq.select.updatedBy = apireq.user;
+                                }
                             }
                         }
                     }
                 }
-
-                // console.log(apireq);
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
                 let updateString: string = `UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`;
                 updateString = updateString.replace(/(\s{2,})/g, " ");
 
                 console.log(updateString);
-                // return;
                 await sqlDB.run(updateString);
 
                 resolve({

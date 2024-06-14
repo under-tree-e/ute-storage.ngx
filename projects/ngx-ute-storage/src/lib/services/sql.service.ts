@@ -32,6 +32,8 @@ export class SqlService {
 
         let stringInsert = (): string => {
             if (selectArray) {
+                console.log(refs);
+
                 const names: string[] = (refs as any[]).filter((r: any) => r.name !== "id").map((r: any) => r.name);
                 let values: any[] = selectArray.map((s: any) => {
                     let vl: any[] = [];
@@ -69,10 +71,13 @@ export class SqlService {
         // };
 
         let stringUpdate = (): string => {
+            console.log(JSON.stringify(selectArray));
             if (selectArray) {
                 // selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null));
                 selectArray = Object.fromEntries(Object.entries(selectArray));
             }
+            console.log(JSON.stringify(selectArray));
+
             return selectArray
                 ? `${Object.keys(selectArray)
                       .map(

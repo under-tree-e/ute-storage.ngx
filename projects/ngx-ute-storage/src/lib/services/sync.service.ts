@@ -75,6 +75,7 @@ export class SyncService {
                     if (!config.sync!.field) config.sync!.field = "createdBy";
                     if (!config.sync!.value) config.sync!.value = config.environment.session!.uuid;
                     if (!config.sync!.date) config.sync!.date = config.environment.session!.syncDate;
+                    if (!config.sync!.last) config.sync!.last = config.environment.session!.lastDate;
 
                     if (!config.sync!.value) {
                         throw false;
@@ -86,7 +87,7 @@ export class SyncService {
                         type: "init",
                         field: config.sync!.field,
                         name: config.sync!.value,
-                        date: config.sync!.date,
+                        date: config.sync!.last,
                         ignore: config.sync!.ignore,
                     });
                     console.log(config.sync);
@@ -98,7 +99,7 @@ export class SyncService {
                                 type: "init",
                                 field: config.sync!.field,
                                 name: config.sync!.value,
-                                date: config.sync!.date,
+                                date: config.sync!.last,
                                 ignore: config.sync!.ignore,
                             },
                             this.options
@@ -116,16 +117,21 @@ export class SyncService {
                         this.syncStages = 6;
                         obs.next({ status: SyncStatusList.syncGet, stage: `${this.syncStage} / ${this.syncStages}` });
 
-                        const serverDate: Date | null = serverData.sync!.date ? new Date(serverData.sync!.date) : null;
+                        const serverDate: Date | null = serverData.syncDate ? new Date(serverData.syncDate) : null;
                         const localDate: Date | null = config.sync!.date ? new Date(config.sync!.date) : null;
-                        delete serverData.sync!.date;
+                        const lastDate: Date | null = config.sync!.last ? new Date(config.sync!.last) : null;
+                        delete serverData.syncDate;
+
+                        console.log("serverDate", serverDate);
+                        console.log("localDate", localDate);
+                        console.log("lastDate", lastDate);
 
                         let createLocalData: UteObjects = {};
                         let updateLocalData: UteObjects = {};
                         let deleteLocalData: UteObjects = {};
 
-                        let localData: UteObjects = await this.getSyncData(config, localDate, serverDate, models, sqlDB);
-                        console.log(localData);
+                        let localData: UteObjects = await this.getSyncData(config, localDate, serverDate, lastDate, models, sqlDB);
+                        // console.log(localData);
                         // return;
 
                         this.syncStage++;
@@ -158,7 +164,7 @@ export class SyncService {
                                 }
 
                                 if (serverDate) {
-                                    const deleteArr = localData[n].filter((sd: any) => !serverData[n].some((ld: any) => ld.uid === sd.uid));
+                                    const deleteArr = localData[n].filter((sd: any) => !serverData[n].some((ld: any) => ld.uid === sd.uid) && new Date(sd.updatedAt).getTime() < serverDate.getTime());
                                     if (deleteArr.length) {
                                         deleteLocalData[n] = deleteArr.map((d: any) => {
                                             d.createdBy = config.sync!.value;
@@ -188,19 +194,19 @@ export class SyncService {
                                 });
                             }
                         });
-                        // console.log(localData);
+                        console.log("localData", localData);
 
-                        // console.log(createLocalData);
-                        // console.log(updateLocalData);
-                        // console.log(deleteLocalData);
-                        // console.log(deleteServerData);
-                        // console.log(returnServerData);
+                        console.log("createLocalData", createLocalData);
+                        console.log("updateLocalData", updateLocalData);
+                        console.log("deleteLocalData", deleteLocalData);
+                        console.log("deleteServerData", deleteServerData);
+                        console.log("returnServerData", returnServerData);
                         // return;
 
                         this.syncStage++;
                         obs.next({ status: SyncStatusList.syncLocal, stage: `${this.syncStage} / ${this.syncStages}` });
 
-                        console.log(createLocalData);
+                        console.log("createLocalData", createLocalData);
                         if (Object.keys(createLocalData).length) {
                             let arrayOfTables: any[] = Object.keys(createLocalData).map((m: string) => {
                                 return {
@@ -217,7 +223,7 @@ export class SyncService {
                             await this.httpService.request("POST", this.sortTables(models, arrayOfTables), config.models, sqlDB);
                         }
 
-                        console.log(updateLocalData);
+                        console.log("updateLocalData", updateLocalData);
                         if (Object.keys(updateLocalData).length) {
                             let arrayOfTables: any[] = Object.keys(updateLocalData).map((m: string) => {
                                 return {
@@ -235,7 +241,7 @@ export class SyncService {
                             await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), config.models, sqlDB);
                         }
 
-                        console.log(deleteLocalData);
+                        console.log("deleteLocalData", deleteLocalData);
                         if (Object.keys(deleteLocalData).length) {
                             let arrayOfTables: any[] = Object.keys(deleteLocalData).map((m: string) => {
                                 return {
@@ -251,12 +257,14 @@ export class SyncService {
                         this.syncStage++;
                         obs.next({ status: SyncStatusList.syncServer, stage: `${this.syncStage} / ${this.syncStages}` });
 
+                        const newDate: Date = new Date();
+
                         await lastValueFrom(
                             this.http.post(
                                 `${serverUrl}sync`,
                                 {
                                     type: "update",
-                                    data: [returnServerData, deleteServerData, config.sync!.value],
+                                    data: [returnServerData, deleteServerData, config.sync!.value, newDate],
                                 },
                                 this.options
                             )
@@ -273,12 +281,12 @@ export class SyncService {
                                     where: { OR: [{ createdBy: "" }, { updatedBy: "" }] },
                                 };
                             });
-                            console.log(this.sortTables(models, arrayOfTables));
+                            // console.log(this.sortTables(models, arrayOfTables));
+                            console.log(arrayOfTables);
 
                             await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), config.models, sqlDB);
                         }
 
-                        const newDate: Date = serverDate ? serverDate! : new Date();
                         await this.httpService.request(
                             "PUT",
                             [
@@ -287,13 +295,16 @@ export class SyncService {
                                     select: {
                                         syncDate: newDate.toISOString(),
                                     },
-                                    where: { [config.sync!.field]: config.sync!.value },
+                                    where: { uuid: config.sync!.value },
                                 },
                             ],
                             config.models,
                             sqlDB
                         );
                         config.sync!.date = newDate;
+
+                        config.environment.session!.syncDate = newDate;
+                        config.environment.session!.lastDate = newDate;
 
                         this.syncStage++;
                         obs.next({ status: SyncStatusList.syncComplete, stage: `${this.syncStage} / ${this.syncStages}`, close: true });
@@ -322,7 +333,7 @@ export class SyncService {
      * @param sqlDB - DB for connection
      * @returns Object with data
      */
-    private getSyncData(config: UteStorageConfigs, localDate: Date | null, serverDate: Date | null, models: any[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+    private getSyncData(config: UteStorageConfigs, localDate: Date | null, serverDate: Date | null, lastDate: Date | null, models: any[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
         return new Promise(async (resolve, reject) => {
             try {
                 const ignoreList: string[] = [...(config.sync!.ignore || []), ...["logs", "media", "deletes"]];
@@ -340,13 +351,23 @@ export class SyncService {
                             },
                         };
 
-                        if (serverDate && localDate) {
+                        if (serverDate && lastDate && localDate) {
+                            if (lastDate.getTime() > serverDate.getTime()) {
+                                (json.where["AND"] as any).push({
+                                    updatedAt: { BETWEEN: [localDate.toISOString(), lastDate.toISOString()] },
+                                });
+                            } else if (lastDate.getTime() <= serverDate.getTime()) {
+                                (json.where["AND"] as any).push({
+                                    updatedAt: { BETWEEN: [localDate.toISOString(), serverDate.toISOString()] },
+                                });
+                            }
+                        } else if (serverDate && localDate) {
                             (json.where["AND"] as any).push({
                                 updatedAt: { BETWEEN: [localDate.toISOString(), serverDate.toISOString()] },
                             });
                         } else if (serverDate) {
                             (json.where["AND"] as any).push({
-                                updatedAt: { LTE: serverDate.toISOString() },
+                                updatedAt: { GTE: serverDate.toISOString() },
                             });
                         }
 
