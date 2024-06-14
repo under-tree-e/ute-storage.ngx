@@ -31,29 +31,21 @@ export class SqlService {
         };
 
         let stringInsert = (): string => {
-            // console.log(selectArray);
-
             if (selectArray) {
-                // console.log(refs);
-
                 const names: string[] = (refs as any[]).filter((r: any) => r.name !== "id").map((r: any) => r.name);
                 let values: any[] = selectArray.map((s: any) => {
-                    // console.log(s);
-
                     let vl: any[] = [];
                     names.map((n: string) => {
-                        // console.log(s[n]);
-
                         if (s[n] === undefined) {
-                            vl.push(`''`);
+                            vl.push(`NULL`);
                         } else {
                             let val = s[n];
-                            if (typeof val === "string") {
+                            if (typeof val === "string" && val) {
                                 val = `'${val}'`;
                             } else if (val instanceof Date) {
                                 val = `'${new Date(val).toISOString()}'`;
-                            } else {
-                                val = `''`;
+                            } else if (val === "NULL" || val === "") {
+                                val = `NULL`;
                             }
                             vl.push(val);
                         }
@@ -62,53 +54,42 @@ export class SqlService {
                 });
 
                 return `(${names.join(", ")}) ${UteQuerySysParams.val} (${values.join("), (")})`;
-                // return selectArray.map((sa: UteObjects) => {
-                //     return sa
-                //         ? `(${Object.keys(sa).join(", ")}) ${UteQuerySysParams.val} (${Object.values(sa)
-                //               .map((st: any) => {
-                //                   if (st) {
-                //                       if (typeof st === "string") {
-                //                           st = `'${st}'`;
-                //                       } else if (st instanceof Date) {
-                //                           st = `'${new Date(st).toISOString()}'`;
-                //                       }
-                //                   }
-                //                   return st;
-                //               })
-                //               .join(", ")})`
-                //         : "";
-                // });
             } else {
                 return "";
             }
-
-            // if (selectArray) {
-            //     selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null && value !== ""));
-            // }
-
-            // return selectArray
-            //     ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
-            //           .map((st: any) => {
-            //               if (st) {
-            //                   if (typeof st === "string") {
-            //                       st = `'${st}'`;
-            //                   } else if (st instanceof Date) {
-            //                       st = `'${new Date(st).toISOString()}'`;
-            //                   }
-            //               }
-            //               return st;
-            //           })
-            //           .join(", ")})`
-            //     : "";
         };
+
+        // let stringInsert = (): string => {
+        //     if (selectArray) {
+        //         let { names, values } = convertValues(refs as any[]);
+        //         return `(${names.join(", ")}) ${UteQuerySysParams.val} (${values.join("), (")})`;
+        //     } else {
+        //         return "";
+        //     }
+        // };
 
         let stringUpdate = (): string => {
             if (selectArray) {
-                selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null));
+                // selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null));
+                selectArray = Object.fromEntries(Object.entries(selectArray));
             }
             return selectArray
                 ? `${Object.keys(selectArray)
-                      .map((st: any) => `${st} = ${typeof selectArray[st] === "string" || selectArray[st] instanceof Date ? `'${selectArray[st]}'` : selectArray[st]}`)
+                      .map(
+                          (st: any) => {
+                              let val = selectArray[st];
+                              if (typeof val === "string" && val) {
+                                  val = `'${val}'`;
+                              } else if (val instanceof Date) {
+                                  val = `'${new Date(val).toISOString()}'`;
+                              } else if (val === "NULL" || val === "") {
+                                  val = `NULL`;
+                              }
+                              return `${st} = ${val}`;
+                          }
+
+                          // `${st} = ${typeof selectArray[st] === "string" || selectArray[st] instanceof Date ? `'${selectArray[st]}'` : selectArray[st]}`
+                      )
                       .join(", ")}`
                 : "";
         };
