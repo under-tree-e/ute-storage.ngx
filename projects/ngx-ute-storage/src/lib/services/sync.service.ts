@@ -257,7 +257,7 @@ export class SyncService {
                         this.syncStage++;
                         obs.next({ status: SyncStatusList.syncServer, stage: `${this.syncStage} / ${this.syncStages}` });
 
-                        const newDate: Date = new Date();
+                        const newDate: Date = new Date(new Date().setMilliseconds(0));
 
                         await lastValueFrom(
                             this.http.post(

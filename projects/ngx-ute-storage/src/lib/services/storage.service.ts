@@ -44,7 +44,6 @@ export class StorageService {
         this.defaultDB = this.config.name;
         this.config.environment!.storage = this;
         this.sortModelsList = this.sortModels(config.models!);
-        console.log(this.sortModelsList);
 
         return new Promise(async (resolve, reject) => {
             try {
