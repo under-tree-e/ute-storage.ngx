@@ -69,4 +69,7 @@ export const SessionDataModel = {
     authToken: {
         type: UteModelTypes.str,
     },
+    migration: {
+        type: UteModelTypes.str,
+    },
 };
