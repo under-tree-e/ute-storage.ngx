@@ -32,8 +32,6 @@ export class SqlService {
 
         let stringInsert = (): string => {
             if (selectArray) {
-                console.log(refs);
-
                 const names: string[] = (refs as any[]).filter((r: any) => r.name !== "id").map((r: any) => r.name);
                 let values: any[] = selectArray.map((s: any) => {
                     let vl: any[] = [];
@@ -61,40 +59,24 @@ export class SqlService {
             }
         };
 
-        // let stringInsert = (): string => {
-        //     if (selectArray) {
-        //         let { names, values } = convertValues(refs as any[]);
-        //         return `(${names.join(", ")}) ${UteQuerySysParams.val} (${values.join("), (")})`;
-        //     } else {
-        //         return "";
-        //     }
-        // };
-
         let stringUpdate = (): string => {
-            console.log(JSON.stringify(selectArray));
             if (selectArray) {
-                // selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null));
                 selectArray = Object.fromEntries(Object.entries(selectArray));
             }
-            console.log(JSON.stringify(selectArray));
 
             return selectArray
                 ? `${Object.keys(selectArray)
-                      .map(
-                          (st: any) => {
-                              let val = selectArray[st];
-                              if (typeof val === "string" && val) {
-                                  val = `'${val}'`;
-                              } else if (val instanceof Date) {
-                                  val = `'${new Date(val).toISOString()}'`;
-                              } else if (val === "NULL" || val === "") {
-                                  val = `NULL`;
-                              }
-                              return `${st} = ${val}`;
+                      .map((st: any) => {
+                          let val = selectArray[st];
+                          if (typeof val === "string" && val) {
+                              val = `'${val}'`;
+                          } else if (val instanceof Date) {
+                              val = `'${new Date(val).toISOString()}'`;
+                          } else if (val === "NULL" || val === "") {
+                              val = `NULL`;
                           }
-
-                          // `${st} = ${typeof selectArray[st] === "string" || selectArray[st] instanceof Date ? `'${selectArray[st]}'` : selectArray[st]}`
-                      )
+                          return `${st} = ${val}`;
+                      })
                       .join(", ")}`
                 : "";
         };
@@ -146,8 +128,21 @@ export class SqlService {
                         select = [...select, ...this.genRefs(refs)];
                     }
                 }
-            } else if (typeof select === "string" && select.toLowerCase() === "count") {
+            } else if (typeof select === "string" && select.toUpperCase() === UteQuerySysParams.cou) {
                 select = [`${UteQuerySysParams.cou}(*)`];
+            } else if (typeof select === "string" && select.toUpperCase().includes(UteQuerySysParams.cou)) {
+                select = [`${select.charAt(0).toUpperCase() + select.slice(1)}`];
+            } else if (typeof select === "string" && select.toUpperCase().includes(UteQuerySysParams.sum)) {
+                const regex = /SUM\('([^']+)'\)(?: as (\w+))?/i;
+                const match = select.match(regex);
+
+                if (match) {
+                    const value = match[1];
+                    const name = match[2] || null;
+                    select = [`${UteQuerySysParams.sum}(${value})${name ? ` as ${name}` : ""}`];
+                } else {
+                    select = [select];
+                }
             } else if (typeof select === "object") {
                 let newSelect: string[] = [];
                 Object.values(select).map((stv: any, istv: number) => {

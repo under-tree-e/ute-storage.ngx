@@ -74,6 +74,7 @@ export enum UteQuerySysParams {
 
     sel = "SELECT",
     cou = "COUNT",
+    sum = "SUM",
     fro = "FROM",
 
     ins = "INSERT INTO",

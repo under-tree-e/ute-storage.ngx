@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { DBSQLiteValues, SQLiteDBConnection } from "@capacitor-community/sqlite";
 import { UteApis } from "../interfaces/api";
 import { UteObjects } from "../interfaces/object";
-import { UteQueryStrings } from "../interfaces/query";
+import { UteQueryStrings, UteQuerySysParams } from "../interfaces/query";
 import { SqlService } from "./sql.service";
 import { v4 } from "uuid";
 import { ApiConst } from "../contantes/api";
@@ -118,7 +118,11 @@ export class HttpService {
                 let refData: string = "";
                 let pragmaList: any = {};
                 let pragmaTables: string[] = [];
-                if (apireq.select && typeof apireq.select === "string" && apireq.select.includes("COUNT")) {
+                if (
+                    apireq.select &&
+                    typeof apireq.select === "string" &&
+                    (apireq.select.toUpperCase().includes(UteQuerySysParams.cou) || apireq.select.toUpperCase().includes(UteQuerySysParams.sum))
+                ) {
                     apireq.noref = true;
                 }
 
@@ -141,7 +145,6 @@ export class HttpService {
                 let selectString: string = `SELECT ${sqlString.select || "*"} FROM ${apireq.table} ${refData ? refData : ""} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`;
                 selectString = selectString.replace(/(\s{2,})/g, " ");
 
-                // console.log("selectString", selectString);
                 let result: DBSQLiteValues = await sqlDB.query(selectString);
 
                 if (models[apireq.table!] && Array.isArray(models[apireq.table!]._secure) && result.values) {
@@ -156,11 +159,22 @@ export class HttpService {
                     let newResult: UteObjects[] = this.convertToObjects(result.values, pragmaTables);
                     resolve({ [apireq.table as string]: await this.converter(apireq.table!, newResult, sqlDB, pragmaTables) });
                 } else if (result.values) {
-                    if (sqlString.select?.includes("COUNT")) {
-                        if (sqlString.select.toLocaleUpperCase() === "COUNT") {
-                            resolve({ [(apireq.table as string) + "Count"]: result.values[0]["COUNT(*)"] });
+                    if (sqlString.select?.includes(UteQuerySysParams.cou)) {
+                        if (sqlString.select.toUpperCase() === UteQuerySysParams.cou) {
+                            resolve({ [(apireq.table as string) + "Count"]: result.values[0][`${UteQuerySysParams.cou}(*)`] });
                         } else {
                             resolve({ [(apireq.table as string) + "Count"]: result.values[0][sqlString.select] });
+                        }
+                    } else if (sqlString.select?.includes(UteQuerySysParams.sum)) {
+                        const regex = /SUM\(([^']+)\)(?: as (\w+))?/i;
+                        const match = sqlString.select.match(regex);
+
+                        if (match) {
+                            const value = match[1];
+                            const name = match[2] || null;
+                            resolve({ [name ? name : (apireq.table as string) + "Sum"]: result.values[0][name ? name : `${UteQuerySysParams.sum}(${value})`] });
+                        } else {
+                            throw "incorect request";
                         }
                     } else {
                         resolve({ [apireq.table as string]: await this.converter(apireq.table!, result.values, sqlDB) });
@@ -274,13 +288,7 @@ export class HttpService {
                 let createString: string = `INSERT INTO ${apireq.table} ${sqlString.insert}`;
                 createString = createString.replace(/(\s{2,})/g, " ");
 
-                console.log("createString", createString);
                 let result: any = await sqlDB.run(createString);
-                // console.log(JSON.stringify(result));
-                // console.log(sqlDB);
-                // if(sqlDB.dbName = 'media'){
-
-                // }
 
                 result = await this.getSql(
                     {
@@ -323,8 +331,6 @@ export class HttpService {
                     return;
                 }
 
-                console.log(JSON.stringify(apireq));
-
                 if (models[apireq.table!] && typeof models[apireq.table!]._stamp === "object") {
                     const stamps: any = models[apireq.table!]._stamp;
                     if (stamps.time && typeof stamps.time === "boolean") {
@@ -355,10 +361,9 @@ export class HttpService {
                 }
 
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("PUT", apireq);
-                let updateString: string = `UPDATE ${apireq.table} SET ${sqlString.update} WHERE ${sqlString.where};`;
+                let updateString: string = `UPDATE ${apireq.table} SET ${sqlString.update} ${sqlString.where ? `WHERE ${sqlString.where}` : ""};`;
                 updateString = updateString.replace(/(\s{2,})/g, " ");
 
-                console.log(updateString);
                 await sqlDB.run(updateString);
 
                 resolve({
@@ -388,7 +393,6 @@ export class HttpService {
                 let deleteString: string = `DELETE FROM ${apireq.table} ${sqlString.where ? "WHERE " + sqlString.where : ""};`;
                 deleteString = deleteString.replace(/(\s{2,})/g, " ");
 
-                // console.log(deleteString);
                 await sqlDB.run(deleteString);
 
                 resolve({
@@ -413,7 +417,7 @@ export class HttpService {
             let newObject: UteObjects = {};
 
             for (const key in item) {
-                if (key === "COUNT(*)") {
+                if (key === `${UteQuerySysParams.cou}(*)`) {
                     newObject = item[key];
                 } else {
                     let value: UteObjects = item[key];

@@ -197,18 +197,12 @@ export class StorageService {
      */
     public startSync(): Observable<SyncResponseData | null> {
         return new Observable((obs: any) => {
-            console.log(this.config);
-
-            console.log(this.config);
-            console.log(this.config.sync);
-
             if ((this.config.sync && this.config.sync?.value) || this.config.environment.session) {
                 this.dbConnect(this.defaultDB).then((sqlDB: SQLiteDBConnection) => {
                     this.syncService.sync(this.config, this.sortModelsList, sqlDB).subscribe(async (res: SyncResponseData | null) => {
                         if (res) {
                             obs.next(res);
                             if (res.close) {
-                                // await this.closeConnection(this.defaultDB);
                                 obs.complete();
                             }
                         } else {
