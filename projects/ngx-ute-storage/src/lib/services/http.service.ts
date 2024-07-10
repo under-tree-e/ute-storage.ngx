@@ -380,9 +380,28 @@ export class HttpService {
 
                 await sqlDB.run(updateString);
 
-                resolve({
-                    [apireq.table as string]: apireq.select,
-                });
+                let result = await this.getSql(
+                    {
+                        table: apireq.table,
+                        where: apireq.where,
+                    },
+                    models,
+                    sqlDB
+                );
+
+                if (Array.isArray(models[apireq.table!]._secure) && result[apireq.table as any]) {
+                    models[apireq.table!]._secure.map((sf: string) => {
+                        result[apireq.table as any]!.map((item: any) => {
+                            delete item[sf];
+                        });
+                    });
+                }
+
+                resolve(result);
+
+                // resolve({
+                //     [apireq.table as string]: apireq.select,
+                // });
             } catch (error) {
                 reject(error);
                 return;
