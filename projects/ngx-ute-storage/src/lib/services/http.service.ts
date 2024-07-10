@@ -204,7 +204,6 @@ export class HttpService {
 
                 const queryPR: string = `PRAGMA table_info(${apireq.table});`;
                 let resultPR = await sqlDB.query(queryPR);
-                console.log("resultPR", resultPR);
 
                 resultPR.values?.map(async (vl: any) => {
                     if (vl.dflt_value) {
@@ -220,26 +219,19 @@ export class HttpService {
                                 });
                                 break;
                             default:
-                                console.log(vl.dflt_value);
-
                                 apireq.select.map((as: UteObjects) => {
-                                    console.log(as[vl.name]);
-
-                                    // if (as && !as[vl.name]) {
-                                    try {
-                                        as[vl.name] = parseInt(vl.dflt_value);
-                                    } catch {
-                                        as[vl.name] = vl.dflt_value;
+                                    if (as && !as[vl.name]) {
+                                        if (vl.dflt_value.startsWith("'") && vl.dflt_value.endsWith("'")) {
+                                            as[vl.name] = vl.dflt_value.slice(1, -1);
+                                        } else {
+                                            as[vl.name] = vl.dflt_value;
+                                        }
                                     }
-                                    // } else {
-                                    // as[vl.name] = null;
-                                    // }
                                 });
                                 break;
                         }
                     }
                 });
-                console.log("apireq", apireq);
 
                 if (models[apireq.table!] && typeof models[apireq.table!]._stamp === "object") {
                     const stamps: any = models[apireq.table!]._stamp;
@@ -306,11 +298,8 @@ export class HttpService {
                     }
                 }
 
-                console.log("apireq", apireq);
-
                 let sqlString: UteQueryStrings = this.sqlService.sqlConvert("POST", apireq, resultPR.values);
                 let createString: string = `INSERT INTO ${apireq.table} ${sqlString.insert}`;
-                console.log("createString", createString);
                 createString = createString.replace(/(\s{2,})/g, " ");
 
                 let result: any = await sqlDB.run(createString);
