@@ -16,6 +16,12 @@ Install the package:
 npm i ngx-ute-storage
 ```
 
+Run command to copy/update sql wasm file
+
+```shell
+ute-st wasm
+```
+
 ## Services and modules
 
 -   Local SQL DB

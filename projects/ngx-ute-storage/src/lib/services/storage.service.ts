@@ -50,20 +50,14 @@ export class StorageService {
                 this.sqlitePlugin = CapacitorSQLite;
                 this.sqlite = new SQLiteConnection(this.sqlitePlugin);
 
-                switch (this.platform) {
-                    case "ios":
-                    case "android":
-                        //
-                        break;
-                    case "web":
-                        jeepSqlite(window);
-                        const jeepEl: any = document.createElement("jeep-sqlite");
-                        document.body.appendChild(jeepEl);
-                        jeepEl.autoSave = true;
-                        jeepEl.wasmPath = "assets";
-                        await customElements.whenDefined("jeep-sqlite");
-                        await this.initWebStore();
-                        break;
+                if (this.platform === "web") {
+                    jeepSqlite(window);
+                    const jeepEl: any = document.createElement("jeep-sqlite");
+                    document.body.appendChild(jeepEl);
+                    jeepEl.autoSave = true;
+                    jeepEl.wasmPath = "assets";
+                    await customElements.whenDefined("jeep-sqlite");
+                    await this.initWebStore();
                 }
                 await this.migrate();
                 resolve(true);
@@ -287,6 +281,8 @@ export class StorageService {
             if (this.sqlite != null) {
                 try {
                     let answer: capSQLiteResult = await this.sqlite.isDatabase(database);
+                    console.log(answer);
+
                     resolve(answer.result ? answer.result : false);
                 } catch (error) {
                     reject(error);
@@ -342,12 +338,11 @@ export class StorageService {
      * @param mode
      * @param version
      */
-    private createConnection(database: string, encrypted: boolean, mode: string, version: number, readonly?: boolean): Promise<SQLiteDBConnection> {
+    private createConnection(database: string, encrypted: boolean, mode: string, version: number, readonly: boolean = false): Promise<SQLiteDBConnection> {
         return new Promise(async (resolve, reject) => {
             if (this.sqlite != null) {
                 try {
-                    const readOnly = readonly ? readonly : false;
-                    const db: SQLiteDBConnection = await this.sqlite.createConnection(database, encrypted, mode, version, readOnly);
+                    const db: SQLiteDBConnection = await this.sqlite.createConnection(database, encrypted, mode, version, readonly);
                     if (db != null) {
                         resolve(db);
                     } else {
