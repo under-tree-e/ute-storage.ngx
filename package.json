@@ -1,7 +1,7 @@
 {
   "name": "ute-storage.ngx",
   "title": "UTE Storage",
-  "version": "0.1.6-dev.23",
+  "version": "0.1.6-dev.24",
   "description": "Angular Storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "author": {
     "name": "Under Tree Entertainment",
@@ -31,6 +31,7 @@
     "build": "ng build",
     "build-cli": "tsc -p tsconfig.cli.json",
     "postbuild": "npm run build-cli",
+    "ute-st": "node dist/ngx-ute-storage/cli.js --wasm",
     "---": "INSTALL",
     "load": "npm i --force",
     "fix": "npm audit fix --force",
@@ -64,7 +65,6 @@
     "file-system": "^1.2.2",
     "graceful-fs": "^4.2.11",
     "rxjs": "~7.8.1",
-    "sql.js": "^1.10.3",
     "tslib": "^2.6.3",
     "uuidv4": "^6.2.13",
     "zone.js": "~0.14.7"
