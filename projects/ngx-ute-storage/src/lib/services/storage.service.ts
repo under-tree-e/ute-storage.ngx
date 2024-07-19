@@ -158,32 +158,12 @@ export class StorageService {
                     }
                 }
 
-                // await this.startSyncPromise();
-
                 resolve(true);
             } catch (error) {
                 reject(error);
             }
         });
     }
-
-    // /**
-    //  * Start sync process in Promise logic
-    //  * @returns
-    //  */
-    // private startSyncPromise(): Promise<boolean> {
-    //     return new Promise(async (resolve, reject) => {
-    //         let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
-    //         lastValueFrom(this.syncService.sync(this.config, sqlDB))
-    //             .then(async () => {
-    //                 await this.closeConnection(this.defaultDB);
-    //                 resolve(true);
-    //             })
-    //             .catch((error: any) => {
-    //                 reject(error);
-    //             });
-    //     });
-    // }
 
     /**
      * Start sync process
@@ -235,10 +215,6 @@ export class StorageService {
 
                 let sqlDB: SQLiteDBConnection = await this.dbConnect(dbName);
                 let sqlResult: UteObjects = await this.httpService.request(method, apireq, this.config.models, sqlDB);
-
-                // if(method !== "GET"){
-                //     this.config.environment.session.syncDate
-                // }
 
                 resolve(sqlResult);
             } catch (error: any) {
