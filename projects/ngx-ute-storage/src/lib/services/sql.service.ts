@@ -32,32 +32,51 @@ export class SqlService {
 
         let stringInsert = (): string => {
             if (selectArray) {
-                selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null && value !== ""));
-            }
+                const names: string[] = (refs as any[]).filter((r: any) => r.name !== "id").map((r: any) => r.name);
+                let values: any[] = selectArray.map((s: any) => {
+                    let vl: any[] = [];
+                    names.map((n: string) => {
+                        if (s[n] === undefined) {
+                            vl.push(`NULL`);
+                        } else {
+                            let val = s[n];
+                            if (typeof val === "string" && val) {
+                                val = `'${val}'`;
+                            } else if (val instanceof Date) {
+                                val = `'${new Date(val).toISOString()}'`;
+                            } else if (val === "NULL" || val === "") {
+                                val = `NULL`;
+                            }
+                            vl.push(val);
+                        }
+                    });
+                    return vl;
+                });
 
-            return selectArray
-                ? `(${Object.keys(selectArray).join(", ")}) ${UteQuerySysParams.val} (${Object.values(selectArray)
-                      .map((st: any) => {
-                          if (st) {
-                              if (typeof st === "string") {
-                                  st = `'${st}'`;
-                              } else if (st instanceof Date) {
-                                  st = `'${new Date(st).toISOString()}'`;
-                              }
-                          }
-                          return st;
-                      })
-                      .join(", ")})`
-                : "";
+                return `(${names.join(", ")}) ${UteQuerySysParams.val} (${values.join("), (")})`;
+            } else {
+                return "";
+            }
         };
 
         let stringUpdate = (): string => {
             if (selectArray) {
-                selectArray = Object.fromEntries(Object.entries(selectArray).filter(([key, value]) => value !== undefined && value !== null));
+                selectArray = Object.fromEntries(Object.entries(selectArray));
             }
+
             return selectArray
                 ? `${Object.keys(selectArray)
-                      .map((st: any) => `${st} = ${typeof selectArray[st] === "string" || selectArray[st] instanceof Date ? `'${selectArray[st]}'` : selectArray[st]}`)
+                      .map((st: any) => {
+                          let val = selectArray[st];
+                          if (typeof val === "string" && val) {
+                              val = `'${val}'`;
+                          } else if (val instanceof Date) {
+                              val = `'${new Date(val).toISOString()}'`;
+                          } else if (val === "NULL" || val === "") {
+                              val = `NULL`;
+                          }
+                          return `${st} = ${val}`;
+                      })
                       .join(", ")}`
                 : "";
         };
@@ -109,8 +128,21 @@ export class SqlService {
                         select = [...select, ...this.genRefs(refs)];
                     }
                 }
-            } else if (typeof select === "string" && select.toLowerCase() === "count") {
+            } else if (typeof select === "string" && select.toUpperCase() === UteQuerySysParams.cou) {
                 select = [`${UteQuerySysParams.cou}(*)`];
+            } else if (typeof select === "string" && select.toUpperCase().includes(UteQuerySysParams.cou)) {
+                select = [`${select.charAt(0).toUpperCase() + select.slice(1)}`];
+            } else if (typeof select === "string" && select.toUpperCase().includes(UteQuerySysParams.sum)) {
+                const regex = /SUM\('([^']+)'\)(?: as (\w+))?/i;
+                const match = select.match(regex);
+
+                if (match) {
+                    const value = match[1];
+                    const name = match[2] || null;
+                    select = [`${UteQuerySysParams.sum}(${value})${name ? ` as ${name}` : ""}`];
+                } else {
+                    select = [select];
+                }
             } else if (typeof select === "object") {
                 let newSelect: string[] = [];
                 Object.values(select).map((stv: any, istv: number) => {
@@ -212,6 +244,25 @@ export class SqlService {
             } else {
                 if (key === UteQueryWRParams.lik || key === UteQueryWRParams.likN) {
                     topLevelConditions.push(`${key} '${data[key]}'`);
+                } else if (key === UteQueryWRParams.not) {
+                    topLevelConditions.push(`IS ${key} '${data[key]}'`);
+                } else if (key === UteQueryWRParams.is) {
+                    topLevelConditions.push(`${key} '${data[key]}'`);
+                } else if (key === UteQueryWRParams.gt || key === UteQueryWRParams.gte || key === UteQueryWRParams.lt || key === UteQueryWRParams.lte) {
+                    switch (key) {
+                        case UteQueryWRParams.gt:
+                            topLevelConditions.push(`> '${data[key]}'`);
+                            break;
+                        case UteQueryWRParams.gte:
+                            topLevelConditions.push(`>= '${data[key]}'`);
+                            break;
+                        case UteQueryWRParams.lt:
+                            topLevelConditions.push(`< '${data[key]}'`);
+                            break;
+                        case UteQueryWRParams.lte:
+                            topLevelConditions.push(`<= '${data[key]}'`);
+                            break;
+                    }
                 } else {
                     let value: any = typeof data[key] === "string" ? `'${data[key]}'` : data[key];
 

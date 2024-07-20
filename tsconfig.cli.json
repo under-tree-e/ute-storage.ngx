@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "outDir": "./dist/ngx-ute-storage",
+        "rootDir": "./projects/ngx-ute-storage/src/bin",
+        "strict": true
+    },
+    "include": [
+        "./projects/ngx-ute-storage/src/bin/cli.ts"
+    ]
+}

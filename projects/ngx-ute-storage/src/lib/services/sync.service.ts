@@ -1,434 +1,358 @@
 import { Injectable } from "@angular/core";
+import { UteStorageConfigs } from "../interfaces/config";
+import { UteObjects } from "../interfaces/object";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { Capacitor } from "@capacitor/core";
+import { Observable, lastValueFrom } from "rxjs";
+import { HttpService } from "./http.service";
+import { SQLiteDBConnection } from "@capacitor-community/sqlite";
+import { SyncResponseData, SyncStatusList } from "../interfaces/sync";
+import { UteApis } from "../interfaces/api";
 
 @Injectable({
     providedIn: "root",
 })
 export class SyncService {
-    private tableList: string[] = ["groups", "accounts", "archives", "banks", "budgets", "categories", "clears", "goals", "records", "stores"];
-    private syncData: any = {};
-    private syncAdd: any = {};
-    private syncChange: any = {};
-    private syncRemove: any = {};
+    private options: {
+        body?: any;
+        headers?: HttpHeaders | undefined;
+    } = {};
+    private syncStages: number = 2;
+    private syncStage: number = 1;
+    private authToken: string = "";
 
-    constructor() {}
+    constructor(private http: HttpClient, private httpService: HttpService) {}
 
-    public sync(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let result: any = { status: 0, complete: false };
-            // console.log(GlobalSession.auth);
-            // console.log(public env = environment;.online);
-            // console.log(public env = environment;.server);
-            // console.log(GlobalSession.token);
-
-            // if (GlobalSession.needSync) {
-            // } else {
-            //     result.complete = true;
-            //     resolve(result);
-            // }
-
-            // if (environment.online && GlobalSession.token) {
-            // 	obs.next(result);
-            // 	this.getData().subscribe((status: boolean) => {
-            // 		if(status){
-            // 			GlobalSession.syncDate = new Date();
-            // 			let json: Api = {
-            // 				table: "users",
-            // 				select: {"syncDate": GlobalSession.syncDate},
-            // 				where: {uuid: GlobalSession.uuid}
-            // 			};
-            // 			this.httpService.httpRequest("PUT", json, {app: true}).subscribe(() => {
-            // 				json.where.uuid = GlobalSession.auth;
-            // 				this.httpService.httpRequest("PUT", json, {local: true}).subscribe(() => {});
-            // 			});
-            // 			this.syncAdd = {server: {}, local: {}};
-            // 			this.syncChange = {server: {}, local: {}};
-            // 			this.syncRemove = {server: {}, local: {}};
-            // 			let localReload: Api[] = [];
-            // 			Object.values(this.syncData.local).map((x: any, i: number) => {
-            // 				x.map((z: any) => {
-            // 					if(z.createdBy != GlobalSession.auth){
-            // 						z.createdBy = GlobalSession.auth;
-            // 						localReload.push({
-            // 							table: (Object.keys(this.syncData.local) as any)[i],
-            // 							select: {"createdBy": GlobalSession.auth},
-            // 							where: {"uid": z.uid}
-            // 						});
-            // 					}
-            // 				});
-            // 			});
-            // 			this.httpService.httpRequest("PUT", localReload, {app: true}).subscribe(() => {
-            // 				this.getClears().subscribe((remove: any) => {
-            // 					this.setSort(remove).subscribe((needSync) => {
-            // 						if(needSync){
-            // 							this.reloadData().subscribe(() => {
-            // 								this.setData().subscribe(() => {
-            // 									result.complete = true;
-            // 									obs.next(result);
-            // 									obs.complete();
-            // 								});
-            // 							});
-            // 						}else{
-            // 							result.complete = true;
-            // 							obs.next(result);
-            // 							obs.complete();
-            // 						}
-            // 					});
-            // 				});
-            // 			});
-            // 		}else{
-            // 			result.complete = true;
-            // 			obs.next(result);
-            // 			obs.complete();
-            // 		}
-            // 	});
-            // } else {
-            //     result.complete = true;
-            //     resolve(result);
-            // }
+    /**
+     * Generate http option to server secure allows
+     * @returns `boolean` status
+     */
+    private generateOptions(): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                this.options = {
+                    headers: new HttpHeaders({
+                        "Content-Type": "application/json",
+                        Session: btoa(
+                            JSON.stringify({
+                                deviceId: await lastValueFrom(this.http.get("assets/deviceId")),
+                                device: Capacitor.getPlatform(),
+                                date: new Date().toISOString().split("T")[0],
+                            })
+                        ),
+                    }),
+                };
+                if (this.authToken) {
+                    this.options.headers = this.options.headers?.set("Authorization", `Bearer ${this.authToken}`);
+                }
+                resolve(true);
+            } catch (error) {
+                reject(error);
+            }
         });
     }
 
-    // private getData(): Observable<boolean> {
-    //     this.syncData = { server: {}, local: {} };
-    //     return new Observable((obs) => {
-    //         // let jsons: UteApis<any>[] = this.tableList.map((x: string) => {
-    //         //     return {
-    //         //         // table: x,
-    //         //         // select: ["uid", "changedAt", "createdBy"],
-    //         //         // where: {
-    //         //         // 	"createdBy": {
-    //         //         // 		"IN": [GlobalSession.auth, GlobalSession.uuid]
-    //         //         // 	}
-    //         //         // }
-    //         //     } as UteApis<any>;
-    //         // });
-    //         // this.httpService.httpRequest("GET", jsons, {local: true}).subscribe((serverAnswer: any) => {
-    //         // 	if(serverAnswer.status == 426){
-    //         // 		GlobalSession.token = "update";
-    //         // 		obs.next(false);
-    //         // 		obs.complete();
-    //         // 	}else{
-    //         // 		Object.keys(serverAnswer).map((x: any, i: number) => {
-    //         // 			this.syncData.server[x] = Object.values(serverAnswer)[i];
-    //         // 		});
-    //         // 		this.httpService.httpRequest("GET", jsons, {app: true}).subscribe((appAnswer: any) => {
-    //         // 			Object.keys(appAnswer).map((x: any, i: number) => {
-    //         // 				this.syncData.local[x] = Object.values(appAnswer)[i];
-    //         // 			});
-    //         // 			obs.next(true);
-    //         // 			obs.complete();
-    //         // 		});
-    //         // 	}
-    //         // });
-    //     });
-    // }
+    /**
+     * Start sync process
+     * @param config - Sync settings
+     * @param sqlDB - DB for connection
+     * @returns Boolean status
+     */
+    public sync(config: UteStorageConfigs, models: any[], sqlDB: SQLiteDBConnection): Observable<SyncResponseData | null> {
+        return new Observable((obs) => {
+            this.syncStages = 2;
+            this.syncStage = 1;
+            this.authToken = config.environment.session.authToken;
 
-    // private getClears(): Observable<any[]> {
-    //     return new Observable((obs) => {
-    //         // let json: UteApis<ClearsData> = {
-    //         //     // table: "clears",
-    //         //     // where: {
-    //         //     // 	"createdBy": {
-    //         //     // 		"IN": [GlobalSession.auth, GlobalSession.uuid]
-    //         //     // 	}
-    //         //     // }
-    //         // };
-    //         // let remove: any[] = [];
-    //         // this.httpService.httpRequest("GET", json, {app: true}).subscribe((appClear: any) => {
-    //         // 	this.httpService.httpRequest("GET", json, {local: true}).subscribe((serverClear: any) => {
-    //         // 		appClear.clears.map((q: any) => {
-    //         // 			if(!serverClear.clears.some((s: any) => s.uid == q.uid)){
-    //         // 				if(!Array.isArray(this.syncAdd.local.clears)){
-    //         // 					this.syncAdd.local.clears = [];
-    //         // 				}
-    //         // 				this.syncAdd.local.clears.push(q);
-    //         // 				if(!remove.some((s: any) => s.uid == q.uid)){
-    //         // 					remove.push(q);
-    //         // 				}
-    //         // 			}
-    //         // 		});
-    //         // 		serverClear.clears.map((q: any) => {
-    //         // 			if(!appClear.clears.some((s: any) => s.uid == q.uid)){
-    //         // 				if(!Array.isArray(this.syncAdd.local.clears)){
-    //         // 					this.syncAdd.local.clears = [];
-    //         // 				}
-    //         // 				this.syncAdd.server.clears.push(q);
-    //         // 				if(!remove.some((s: any) => s.uid == q.uid)){
-    //         // 					remove.push(q);
-    //         // 				}
-    //         // 			}
-    //         // 		});
-    //         // 		obs.next(remove);
-    //         // 		obs.complete();
-    //         // 	});
-    //         // });
-    //     });
-    // }
+            obs.next({ status: SyncStatusList.syncCheck, stage: `${this.syncStage} / ${this.syncStages}` });
+            try {
+                const func = async () => {
+                    await this.generateOptions();
 
-    // private setSort(remove: any[]): Observable<boolean> {
-    //     return new Observable((obs) => {
-    //         this.tableList.map((table: string) => {
-    //             if (!this.syncData.server[table]) {
-    //                 this.syncData.server[table] = [];
-    //             }
-    //             if (!this.syncData.local[table]) {
-    //                 this.syncData.local[table] = [];
-    //             }
+                    if (!config.sync!.server) config.sync!.server = config.environment.appServer;
+                    if (!config.sync!.field) config.sync!.field = "createdBy";
+                    if (!config.sync!.value) config.sync!.value = config.environment.session!.uuid;
+                    if (!config.sync!.date) config.sync!.date = config.environment.session!.syncDate;
+                    if (!config.sync!.last) config.sync!.last = config.environment.session!.lastDate;
 
-    //             this.syncData.server[table].map((z: any) => {
-    //                 let index = this.syncData.local[table].map((s: any) => s.uid).indexOf(z.uid);
-    //                 if (index == -1) {
-    //                     if (!remove.some((s: any) => s.uid == z.uid)) {
-    //                         if (!Array.isArray(this.syncAdd.local[table])) {
-    //                             this.syncAdd.local[table] = [];
-    //                         }
-    //                         this.syncAdd.local[table].push(z);
-    //                     } else {
-    //                         if (!Array.isArray(this.syncRemove.server[table])) {
-    //                             this.syncRemove.server[table] = [];
-    //                         }
-    //                         this.syncRemove.server[table].push(z);
-    //                     }
-    //                 } else {
-    //                     let item = this.syncData.local[table][index];
-    //                     if (new Date(z.changedAt).getTime() > new Date(item.changedAt).getTime()) {
-    //                         if (!remove.some((s: any) => s.uid == z.uid)) {
-    //                             if (!Array.isArray(this.syncChange.local[table])) {
-    //                                 this.syncChange.local[table] = [];
-    //                             }
-    //                             this.syncChange.local[table].push(z);
-    //                         } else {
-    //                             if (!Array.isArray(this.syncRemove.server[table])) {
-    //                                 this.syncRemove.server[table] = [];
-    //                             }
-    //                             this.syncRemove.server[table].push(z);
-    //                         }
-    //                     }
-    //                 }
-    //             });
-    //             this.syncData.local[table].map((z: any) => {
-    //                 let index = this.syncData.server[table].map((s: any) => s.uid).indexOf(z.uid);
-    //                 if (index == -1) {
-    //                     if (!remove.some((s: any) => s.uid == z.uid)) {
-    //                         if (!Array.isArray(this.syncAdd.server[table])) {
-    //                             this.syncAdd.server[table] = [];
-    //                         }
-    //                         this.syncAdd.server[table].push(z);
-    //                     } else {
-    //                         if (!Array.isArray(this.syncRemove.local[table])) {
-    //                             this.syncRemove.local[table] = [];
-    //                         }
-    //                         this.syncRemove.local[table].push(z);
-    //                     }
-    //                 } else {
-    //                     let item = this.syncData.server[table][index];
-    //                     if (new Date(z.changedAt).getTime() > new Date(item.changedAt).getTime()) {
-    //                         if (!remove.some((s: any) => s.uid == z.uid)) {
-    //                             if (!Array.isArray(this.syncChange.server[table])) {
-    //                                 this.syncChange.server[table] = [];
-    //                             }
-    //                             this.syncChange.server[table].push(z);
-    //                         } else {
-    //                             if (!Array.isArray(this.syncRemove.local[table])) {
-    //                                 this.syncRemove.local[table] = [];
-    //                             }
-    //                             this.syncRemove.local[table].push(z);
-    //                         }
-    //                     }
-    //                 }
-    //             });
-    //         });
+                    if (!config.sync!.value) {
+                        throw false;
+                    }
 
-    //         if (
-    //             Object.keys(this.syncAdd.server).length > 0 ||
-    //             Object.keys(this.syncAdd.local).length > 0 ||
-    //             Object.keys(this.syncChange.server).length > 0 ||
-    //             Object.keys(this.syncChange.local).length > 0 ||
-    //             Object.keys(this.syncRemove.server).length > 0 ||
-    //             Object.keys(this.syncRemove.local).length > 0
-    //         ) {
-    //             obs.next(true);
-    //             obs.complete();
-    //         } else {
-    //             obs.next(false);
-    //             obs.complete();
-    //         }
-    //     });
-    // }
+                    const serverUrl: string = `${config.sync!.server}${config.sync!.server?.endsWith("/") ? "api/" : "/api/"}`;
 
-    // private reloadData(): Observable<boolean> {
-    //     return new Observable((obs) => {
-    //         // let jsonsAS: UteApis<any>[] = Object.keys(this.syncAdd.server).map((x: any, ix: number) => {
-    //         //     let uidList: any[] = (Object.values(this.syncAdd.server) as any)[ix].map((z: any) => z.uid);
-    //         //     return {
-    //         //         table: x,
-    //         //         where: uidList.map((q: any) => q),
-    //         //     };
-    //         // });
-    //         // let jsonsCS: UteApis<any>[] = Object.keys(this.syncChange.server).map((x: any, ix: number) => {
-    //         //     let uidList: any[] = (Object.values(this.syncChange.server) as any)[ix].map((z: any) => z.uid);
-    //         //     return {
-    //         //         table: x,
-    //         //         where: uidList.map((q: any) => q),
-    //         //     };
-    //         // });
-    //         // let jsonsServer: UteApis<any>[] = [...jsonsAS, ...jsonsCS];
-    //         // jsonsServer.map((x: UteApis<any>) => {
-    //         //     if (Array.isArray(x.where)) {
-    //         //         x.where = {
-    //         //             uid: {
-    //         //                 IN: x.where,
-    //         //             },
-    //         //         };
-    //         //     }
-    //         // });
-    //         // let jsonsAL: UteApis<any>[] = Object.keys(this.syncAdd.local).map((x: any, ix: number) => {
-    //         //     let uidList: any[] = (Object.values(this.syncAdd.local) as any)[ix].map((z: any) => z.uid);
-    //         //     return {
-    //         //         table: x,
-    //         //         where: uidList.map((q: any) => q),
-    //         //     };
-    //         // });
-    //         // let jsonsCL: UteApis<any>[] = Object.keys(this.syncChange.local).map((x: any, ix: number) => {
-    //         //     let uidList: any[] = (Object.values(this.syncChange.local) as any)[ix].map((z: any) => z.uid);
-    //         //     return {
-    //         //         table: x,
-    //         //         where: uidList.map((q: any) => q),
-    //         //     };
-    //         // });
-    //         // let jsonsLocal: UteApis<any>[] = [...jsonsAL, ...jsonsCL];
-    //         // jsonsLocal.map((x: UteApis<any>) => {
-    //         //     if (Array.isArray(x.where)) {
-    //         //         x.where = {
-    //         //             uid: {
-    //         //                 IN: x.where,
-    //         //             },
-    //         //         };
-    //         //     }
-    //         // });
-    //         // this.httpService.httpRequest("GET", jsonsServer, {app: true}).subscribe((localReload: any) => {
-    //         // 	jsonsAS.map((jas: any) => {
-    //         // 		let array = localReload[jas.table].filter((lr: any) => {
-    //         // 			if(jas.where.uid.IN.some((x: any) => x == lr.uid)){
-    //         // 				return true;
-    //         // 			}else{
-    //         // 				return false;
-    //         // 			}
-    //         // 		}).map((lr: any) => lr);
-    //         // 		this.syncAdd.server[jas.table] = array
-    //         // 	});
-    //         // 	jsonsCS.map((jas: any) => {
-    //         // 		let array = localReload[jas.table].filter((lr: any) => {
-    //         // 			if(jas.where.uid.IN.some((x: any) => x == lr.uid)){
-    //         // 				return true;
-    //         // 			}else{
-    //         // 				return false;
-    //         // 			}
-    //         // 		}).map((lr: any) => lr);
-    //         // 		this.syncChange.server[jas.table] = array
-    //         // 	});
-    //         // 	// this.httpService.httpRequest("GET", jsonsLocal, {local: true}).subscribe((serverReload: any) => {
-    //         // 	// 	jsonsAL.map((jas: any) => {
-    //         // 	// 		let array = serverReload[jas.table].filter((lr: any) => {
-    //         // 	// 			if(jas.where.uid.IN.some((x: any) => x == lr.uid)){
-    //         // 	// 				return true;
-    //         // 	// 			}else{
-    //         // 	// 				return false;
-    //         // 	// 			}
-    //         // 	// 		}).map((lr: any) => lr);
-    //         // 	// 		this.syncAdd.local[jas.table] = array
-    //         // 	// 	});
-    //         // 	// 	jsonsCL.map((jas: any) => {
-    //         // 	// 		let array = serverReload[jas.table].filter((lr: any) => {
-    //         // 	// 			if(jas.where.uid.IN.some((x: any) => x == lr.uid)){
-    //         // 	// 				return true;
-    //         // 	// 			}else{
-    //         // 	// 				return false;
-    //         // 	// 			}
-    //         // 	// 		}).map((lr: any) => lr);
-    //         // 	// 		this.syncChange.local[jas.table] = array
-    //         // 	// 	});
-    //         // 	// 	obs.next(true);
-    //         // 	// 	obs.complete();
-    //         // 	// });
-    //         // });
-    //     });
-    // }
+                    const serverData: any = await lastValueFrom(
+                        this.http.post(
+                            `${serverUrl}sync`,
+                            {
+                                type: "init",
+                                field: config.sync!.field,
+                                name: config.sync!.value,
+                                date: config.sync!.last,
+                                ignore: config.sync!.ignore,
+                            },
+                            this.options
+                        )
+                    );
 
-    // private setData(): Observable<boolean> {
-    //     return new Observable((obs) => {
-    //         // let jsonsAS: UteApis<any>[] = [];
-    //         // Object.keys(this.syncAdd.server).map((x: any, ix: number) => {
-    //         //     let dataList: any[] = (Object.values(this.syncAdd.server) as any)[ix].map((z: any) => z);
-    //         //     jsonsAS.push({
-    //         //         table: x,
-    //         //         select: dataList,
-    //         //     });
-    //         // });
-    //         // let jsonsCS: UteApis<any>[] = [];
-    //         // Object.keys(this.syncChange.server).map((x: any, ix: number) => {
-    //         //     let dataList: any[] = (Object.values(this.syncChange.server) as any)[ix].map((z: any) => z);
-    //         //     dataList.map((m: any) => {
-    //         //         jsonsCS.push({
-    //         //             table: x,
-    //         //             select: m,
-    //         //             where: { uid: m.uid },
-    //         //         });
-    //         //     });
-    //         // });
-    //         // let jsonsDS: UteApis<any>[] = [];
-    //         // Object.keys(this.syncRemove.server).map((x: any, ix: number) => {
-    //         //     let dataList: any[] = (Object.values(this.syncRemove.server) as any)[ix].map((z: any) => z);
-    //         //     dataList.map((m: any) => {
-    //         //         jsonsDS.push({
-    //         //             table: x,
-    //         //             where: { uid: m.uid },
-    //         //         });
-    //         //     });
-    //         // });
-    //         // let jsonsAL: UteApis<any>[] = [];
-    //         // Object.keys(this.syncAdd.local).map((x: any, ix: number) => {
-    //         //     let dataList: any[] = (Object.values(this.syncAdd.local) as any)[ix].map((z: any) => z);
-    //         //     jsonsAL.push({
-    //         //         table: x,
-    //         //         select: dataList,
-    //         //     });
-    //         // });
-    //         // let jsonsCL: UteApis<any>[] = [];
-    //         // Object.keys(this.syncChange.local).map((x: any, ix: number) => {
-    //         //     let dataList: any[] = (Object.values(this.syncChange.local) as any)[ix].map((z: any) => z);
-    //         //     dataList.map((m: any) => {
-    //         //         jsonsCL.push({
-    //         //             table: x,
-    //         //             select: m,
-    //         //             where: { uid: m.uid },
-    //         //         });
-    //         //     });
-    //         // });
-    //         // let jsonsDL: UteApis<any>[] = [];
-    //         // Object.keys(this.syncRemove.local).map((x: any, ix: number) => {
-    //         //     let dataList: any[] = (Object.values(this.syncRemove.local) as any)[ix].map((z: any) => z);
-    //         //     dataList.map((m: any) => {
-    //         //         jsonsDL.push({
-    //         //             table: x,
-    //         //             where: { uid: m.uid },
-    //         //         });
-    //         //     });
-    //         // });
-    //         // this.httpService.httpRequest("POST", jsonsAS, {local: true}).subscribe(() => {
-    //         // 	this.httpService.httpRequest("POST", jsonsAL, {app: true}).subscribe(() => {
-    //         // 		this.httpService.httpRequest("PUT", jsonsCS, {local: true}).subscribe(() => {
-    //         // 			this.httpService.httpRequest("PUT", jsonsCL, {app: true}).subscribe(() => {
-    //         // 				this.httpService.httpRequest("DELETE", jsonsDS, {local: true}).subscribe(() => {
-    //         // 					this.httpService.httpRequest("DELETE", jsonsDL, {app: true}).subscribe(() => {
-    //         // 						obs.next(true);
-    //         // 						obs.complete();
-    //         // 					});
-    //         // 				});
-    //         // 			});
-    //         // 		});
-    //         // 	});
-    //         // });
-    //     });
-    // }
+                    if (serverData === null) {
+                        this.syncStage++;
+                        obs.next({ status: SyncStatusList.syncComplete, stage: `${this.syncStage} / ${this.syncStages}`, close: true });
+                        obs.complete();
+                    } else {
+                        this.syncStage++;
+                        this.syncStages = 6;
+                        obs.next({ status: SyncStatusList.syncGet, stage: `${this.syncStage} / ${this.syncStages}` });
+
+                        const serverDate: Date | null = serverData.syncDate ? new Date(serverData.syncDate) : null;
+                        const localDate: Date | null = config.sync!.date ? new Date(config.sync!.date) : null;
+                        const lastDate: Date | null = config.sync!.last ? new Date(config.sync!.last) : null;
+                        delete serverData.syncDate;
+
+                        let createLocalData: UteObjects = {};
+                        let updateLocalData: UteObjects = {};
+                        let deleteLocalData: UteObjects = {};
+
+                        let localData: UteObjects = await this.getSyncData(config, localDate, serverDate, lastDate, models, sqlDB);
+
+                        this.syncStage++;
+                        obs.next({ status: SyncStatusList.syncAnalyse, stage: `${this.syncStage} / ${this.syncStages}` });
+
+                        let returnServerData: UteObjects = {};
+                        let deleteServerData: UteObjects = localData["deletes"] || {};
+
+                        Object.keys(serverData).map((n: string) => {
+                            if (localData[n]) {
+                                const createArr = serverData[n].filter((sd: any) => !localData[n].some((ld: any) => ld.uid === sd.uid));
+
+                                if (createArr.length) {
+                                    createLocalData[n] = createArr.map((d: any) => {
+                                        d.createdBy = config.sync!.value;
+                                        return d;
+                                    });
+                                }
+
+                                const updateArr = serverData[n].filter((sd: any) => localData[n].some((ld: any) => ld.uid === sd.uid));
+                                if (updateArr.length) {
+                                    updateLocalData[n] = updateArr.map((d: any) => {
+                                        d.createdBy = config.sync!.value;
+                                        return d;
+                                    });
+                                }
+
+                                if (serverDate) {
+                                    const deleteArr = localData[n].filter((sd: any) => !serverData[n].some((ld: any) => ld.uid === sd.uid) && new Date(sd.updatedAt).getTime() < serverDate.getTime());
+                                    if (deleteArr.length) {
+                                        deleteLocalData[n] = deleteArr.map((d: any) => {
+                                            d.createdBy = config.sync!.value;
+                                            return d;
+                                        });
+                                    }
+                                }
+                            } else {
+                                if (serverData[n].length) {
+                                    createLocalData[n] = serverData[n];
+                                }
+                            }
+                        });
+
+                        Object.keys(localData).map((n: string) => {
+                            let returnArr = [];
+                            if (n !== "deletes" && serverDate) {
+                                returnArr = localData[n].filter((dl: any) => dl.updatedAt.getTime() > serverDate.getTime());
+                            } else if (!serverDate) {
+                                returnArr = localData[n];
+                            }
+                            if (returnArr.length) {
+                                returnServerData[n] = returnArr.map((d: any) => {
+                                    d.createdBy = config.sync!.value;
+                                    d.updatedBy = config.sync!.value;
+                                    return d;
+                                });
+                            }
+                        });
+
+                        this.syncStage++;
+                        obs.next({ status: SyncStatusList.syncLocal, stage: `${this.syncStage} / ${this.syncStages}` });
+
+                        if (Object.keys(createLocalData).length) {
+                            let arrayOfTables: any[] = Object.keys(createLocalData).map((m: string) => {
+                                return {
+                                    table: m,
+                                    select: createLocalData[m].map((d: any) => {
+                                        d.createdBy = config.sync!.value;
+                                        d.updatedBy = config.sync!.value;
+                                        return d;
+                                    }),
+                                };
+                            });
+
+                            await this.httpService.request("POST", this.sortTables(models, arrayOfTables), config.models, sqlDB);
+                        }
+
+                        if (Object.keys(updateLocalData).length) {
+                            let arrayOfTables: any[] = Object.keys(updateLocalData).map((m: string) => {
+                                return {
+                                    table: m,
+                                    select: updateLocalData[m].map((d: any) => {
+                                        d.createdBy = config.sync!.value;
+                                        d.updatedBy = config.sync!.value;
+                                        return d;
+                                    }),
+                                    where: { uid: { IN: updateLocalData[m].map((d: any) => d.uid) } },
+                                };
+                            });
+
+                            await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), config.models, sqlDB);
+                        }
+
+                        if (Object.keys(deleteLocalData).length) {
+                            let arrayOfTables: any[] = Object.keys(deleteLocalData).map((m: string) => {
+                                return {
+                                    table: m,
+                                    where: { uid: { IN: deleteLocalData[m].map((d: any) => d.uid) } },
+                                };
+                            });
+                            await this.httpService.request("DELETE", this.sortTables(models, arrayOfTables, true), config.models, sqlDB);
+                        }
+
+                        this.syncStage++;
+                        obs.next({ status: SyncStatusList.syncServer, stage: `${this.syncStage} / ${this.syncStages}` });
+
+                        const newDate: Date = new Date(new Date().setMilliseconds(0));
+
+                        await lastValueFrom(
+                            this.http.post(
+                                `${serverUrl}sync`,
+                                {
+                                    type: "update",
+                                    data: [returnServerData, deleteServerData, config.sync!.value, newDate],
+                                },
+                                this.options
+                            )
+                        );
+
+                        if (Object.keys(returnServerData).length) {
+                            let arrayOfTables: any[] = Object.keys(returnServerData).map((m: string) => {
+                                return {
+                                    table: m,
+                                    select: {
+                                        createdBy: config.sync!.value,
+                                        updatedBy: config.sync!.value,
+                                    },
+                                    where: { OR: [{ createdBy: "" }, { updatedBy: "" }] },
+                                };
+                            });
+
+                            await this.httpService.request("PUT", this.sortTables(models, arrayOfTables), config.models, sqlDB);
+                        }
+
+                        await this.httpService.request(
+                            "PUT",
+                            [
+                                {
+                                    table: "users",
+                                    select: {
+                                        syncDate: newDate.toISOString(),
+                                    },
+                                    where: { uuid: config.sync!.value },
+                                },
+                            ],
+                            config.models,
+                            sqlDB
+                        );
+                        config.sync!.date = newDate;
+
+                        config.environment.session!.syncDate = newDate;
+                        config.environment.session!.lastDate = newDate;
+
+                        this.syncStage++;
+                        obs.next({ status: SyncStatusList.syncComplete, stage: `${this.syncStage} / ${this.syncStages}`, close: true });
+                    }
+                };
+                func()
+                    .then(() => {
+                        obs.complete();
+                    })
+                    .catch((error) => {
+                        console.error(error);
+                        obs.next(null);
+                        obs.complete();
+                    });
+            } catch (error) {
+                console.error(error);
+                obs.next(null);
+                obs.complete();
+            }
+        });
+    }
+
+    /**
+     * Get local DB data
+     * @param config - Sync settings
+     * @param sqlDB - DB for connection
+     * @returns Object with data
+     */
+    private getSyncData(config: UteStorageConfigs, localDate: Date | null, serverDate: Date | null, lastDate: Date | null, models: any[], sqlDB: SQLiteDBConnection): Promise<UteObjects> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const ignoreList: string[] = [...(config.sync!.ignore || []), ...["logs", "media", "deletes"]];
+                const models = Object.entries(config.models!).reduce((acc: any, [key, value]) => {
+                    acc[key] = value._model;
+                    return acc;
+                }, {});
+                const jsons: UteApis<any>[] = Object.keys(models!)
+                    .filter((m: string) => !ignoreList.some((ig: string) => m === ig))
+                    .map((m: string) => {
+                        let json = {
+                            table: m,
+                            where: {
+                                AND: [{ [config.sync!.field!]: { IN: [config.sync!.value, ""] } }],
+                            },
+                        };
+
+                        if (serverDate && lastDate && localDate) {
+                            if (lastDate.getTime() > serverDate.getTime()) {
+                                (json.where["AND"] as any).push({
+                                    updatedAt: { BETWEEN: [localDate.toISOString(), lastDate.toISOString()] },
+                                });
+                            } else if (lastDate.getTime() <= serverDate.getTime()) {
+                                (json.where["AND"] as any).push({
+                                    updatedAt: { BETWEEN: [localDate.toISOString(), serverDate.toISOString()] },
+                                });
+                            }
+                        } else if (serverDate && localDate) {
+                            (json.where["AND"] as any).push({
+                                updatedAt: { BETWEEN: [localDate.toISOString(), serverDate.toISOString()] },
+                            });
+                        } else if (serverDate) {
+                            (json.where["AND"] as any).push({
+                                updatedAt: { GTE: serverDate.toISOString() },
+                            });
+                        }
+
+                        return json;
+                    });
+
+                const sendData: UteObjects = await this.httpService.request("GET", this.sortTables(models, jsons), config.models, sqlDB);
+                resolve(sendData);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    private sortTables(models: string[], tables: any[], reverse: boolean = false): any[] {
+        const tableOrder = Object.keys(models).reduce((acc: any, table: any, index: number) => {
+            acc[table] = index;
+            return acc;
+        }, {});
+
+        const list: any[] = tables.sort((a, b) => tableOrder[a.table] - tableOrder[b.table]);
+        if (reverse) {
+            return list.reverse();
+        } else {
+            return list;
+        }
+    }
 }
