@@ -37,8 +37,9 @@ export class StorageService {
      * @returns boolean result
      */
     public Init(config: UteStorageConfigs) {
-        console.log("StorageService - Init");
-        // console.log(`${new Date().toISOString()} => StorageService - Init`);
+        if (!config.environment.production) {
+            console.log(`${new Date().toISOString()} => StorageService - Init`);
+        }
 
         this.config = config;
         this.defaultDB = this.config.name;
@@ -154,7 +155,8 @@ export class StorageService {
                     await this.closeConnection(this.defaultDB);
 
                     if (!isMainDB || update) {
-                        await this.copyFromAssets();
+                        // await this.copyFromAssets();
+                        await this.getFromHTTPRequest("./assets/databases/mediaSQLite.db");
                     }
                 }
 
@@ -257,8 +259,6 @@ export class StorageService {
             if (this.sqlite != null) {
                 try {
                     let answer: capSQLiteResult = await this.sqlite.isDatabase(database);
-                    console.log(answer);
-
                     resolve(answer.result ? answer.result : false);
                 } catch (error) {
                     reject(error);
@@ -400,6 +400,7 @@ export class StorageService {
 
     /**
      * Copy databases from public/assets/databases folder to application databases folder
+     * ATTENTION!!! On Electron has absolute INCORECT path, use 'getFromHTTPRequest' insted
      */
     public copyFromAssets(overwrite?: boolean): Promise<void> {
         return new Promise(async (resolve, reject) => {
@@ -414,6 +415,24 @@ export class StorageService {
                 reject(new Error(`no connection open`));
             }
         });
+    }
+
+    /**
+     * Get a database from a given url
+     * @param url
+     * @param overwrite
+     * @returns
+     */
+    async getFromHTTPRequest(url: string, overwrite?: boolean): Promise<void> {
+        const mOverwrite: boolean = overwrite != null ? overwrite : true;
+        if (url.length === 0) {
+            return Promise.reject(new Error(`Must give an url to download`));
+        }
+        if (this.sqlite != null) {
+            return this.sqlite.getFromHTTPRequest(url, mOverwrite);
+        } else {
+            return Promise.reject(new Error(`can't download the database`));
+        }
     }
 
     /**
