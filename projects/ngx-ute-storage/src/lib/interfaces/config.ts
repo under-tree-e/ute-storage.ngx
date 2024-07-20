@@ -33,6 +33,10 @@ export interface UteStorageConfigs {
      * Sync configs
      */
     sync?: SyncConfigData;
+    /**
+     * Links to sub DB, assets, etc.
+     */
+    subDB?: string[];
     // /**
     //  * Link to server for sync data
     //  * @default `environment.server`

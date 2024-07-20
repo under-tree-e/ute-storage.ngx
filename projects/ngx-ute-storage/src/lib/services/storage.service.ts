@@ -154,9 +154,10 @@ export class StorageService {
                     }
                     await this.closeConnection(this.defaultDB);
 
-                    if (!isMainDB || update) {
-                        // await this.copyFromAssets();
-                        await this.getFromHTTPRequest("./assets/databases/mediaSQLite.db");
+                    if ((!isMainDB || update) && this.config.subDB) {
+                        for (let db of this.config.subDB) {
+                            await this.getFromHTTPRequest(db);
+                        }
                     }
                 }
 
