@@ -36,19 +36,16 @@ export class SqlService {
                 let values: any[] = selectArray.map((s: any) => {
                     let vl: any[] = [];
                     names.map((n: string) => {
-                        if (s[n] === undefined) {
-                            vl.push(`NULL`);
-                        } else {
-                            let val = s[n];
-                            if (typeof val === "string" && val) {
-                                val = `'${val}'`;
-                            } else if (val instanceof Date) {
-                                val = `'${new Date(val).toISOString()}'`;
-                            } else if (val === "NULL" || val === "") {
-                                val = `NULL`;
-                            }
-                            vl.push(val);
+                        let val = s[n];
+                        if (typeof val === "string" && val) {
+                            val = `'${val}'`;
+                        } else if (val instanceof Date) {
+                            val = `'${new Date(val).toISOString()}'`;
+                        } else if (val === "NULL" || val === "" || val === null || val === undefined) {
+                            val = `NULL`;
                         }
+
+                        vl.push(val);
                     });
                     return vl;
                 });
@@ -72,7 +69,7 @@ export class SqlService {
                               val = `'${val}'`;
                           } else if (val instanceof Date) {
                               val = `'${new Date(val).toISOString()}'`;
-                          } else if (val === "NULL" || val === "") {
+                          } else if (val === "NULL" || val === "" || val === null || val === undefined) {
                               val = `NULL`;
                           }
                           return `${st} = ${val}`;
