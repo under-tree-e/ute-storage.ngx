@@ -156,7 +156,12 @@ export class StorageService {
 
                     if ((!isMainDB || update) && this.config.subDB) {
                         for (let db of this.config.subDB) {
-                            await this.getFromHTTPRequest(db);
+                            console.log(this.platform === "electron");
+                            if(this.platform === "electron"){
+                                await this.getFromHTTPRequest(db);
+                            }else{
+                                await this.copyFromAssets();
+                            }
                         }
                     }
                 }
