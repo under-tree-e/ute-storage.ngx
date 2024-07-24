@@ -1,7 +1,7 @@
 {
   "name": "ute-storage.ngx",
   "title": "UTE Storage",
-  "version": "0.2.2-dev.2",
+  "version": "0.2.2",
   "description": "Angular Storage for offline apps with SQLite (Web, Ionic, Capacitor, Electron)",
   "author": {
     "name": "Under Tree Entertainment",
