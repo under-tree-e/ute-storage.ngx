@@ -10,7 +10,7 @@ import { UteQuerySysParams } from "../interfaces/query";
 import { HttpService } from "./http.service";
 import { UteModelTypes } from "../interfaces/model";
 import { SyncService } from "./sync.service";
-import { Observable, lastValueFrom } from "rxjs";
+import { Observable } from "rxjs";
 import { SyncResponseData } from "../interfaces/sync";
 
 @Injectable({
@@ -21,6 +21,7 @@ export class StorageService {
     private sqlitePlugin: any = null;
     private defaultDB: string = "";
     private platform: string = Capacitor.getPlatform();
+    private device: string = this.platform;
     private requestDB: string = this.defaultDB;
     private sortModelsList: any[] = [];
 
@@ -39,6 +40,10 @@ export class StorageService {
     public Init(config: UteStorageConfigs) {
         if (!config.environment.production) {
             console.log(`${new Date().toISOString()} => StorageService - Init`);
+        }
+
+        if (this.device === "web") {
+            this.device = this.isWebBrowser(this.device);
         }
 
         this.config = config;
@@ -156,7 +161,11 @@ export class StorageService {
 
                     if ((!isMainDB || update) && this.config.subDB) {
                         for (let db of this.config.subDB) {
-                            await this.getFromHTTPRequest(db);
+                            if (this.device === "electron") {
+                                await this.getFromHTTPRequest(db);
+                            } else {
+                                await this.copyFromAssets();
+                            }
                         }
                     }
                 }
@@ -550,5 +559,26 @@ export class StorageService {
 
         // Combine the sorted arrays
         return [...withoutReferences.map((obj) => obj.k), ...withReferences.map((obj) => obj.k)];
+    }
+
+    /**
+     * Check if app is web platform or browser instance
+     * @returns status
+     */
+    private isWebBrowser(platform: string): string {
+        if (typeof navigator === "object" && typeof navigator.userAgent === "string") {
+            if (/android/i.test(navigator.userAgent)) {
+                return "android";
+            }
+
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                return "ios";
+            }
+
+            if (/Electron/.test(navigator.userAgent)) {
+                return "electron";
+            }
+        }
+        return platform;
     }
 }

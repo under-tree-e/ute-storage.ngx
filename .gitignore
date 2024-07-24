@@ -1,16 +1,18 @@
 #Folders
-.vscode
-node_modules
-.app
-.angular
-dist
-android
-ios
-electron
+/.vscode
+/node_modules
+/.app
+/.angular
+/dist
+/android
+/ios
+/electron
 
 #Files
 .gitToken
 Thumbs.db
 .env
 deviceId
-config.json
+/config.json
+.DS_Store
+package-lock.json
