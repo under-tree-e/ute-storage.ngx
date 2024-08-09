@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import { UteStorageConfigs } from "../interfaces/config";
-import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult, capSQLiteChanges } from "@capacitor-community/sqlite";
+import { CapacitorSQLite, SQLiteDBConnection, SQLiteConnection, capSQLiteResult, capSQLiteChanges, capSQLiteJson } from "@capacitor-community/sqlite";
 import { defineCustomElements as jeepSqlite } from "jeep-sqlite/loader";
 import { HttpClient } from "@angular/common/http";
 import { UteApis } from "../interfaces/api";
@@ -65,6 +65,15 @@ export class StorageService {
                     await customElements.whenDefined("jeep-sqlite");
                     await this.initWebStore();
                 }
+                // jeepSqlite(window);
+                // const jeepEl: any = document.createElement("jeep-sqlite");
+                // document.body.appendChild(jeepEl);
+                // jeepEl.autoSave = true;
+                // jeepEl.wasmPath = "assets";
+                // await customElements.whenDefined("jeep-sqlite");
+                // if (this.platform === "web") {
+                //     await this.initWebStore();
+                // }
                 await this.migrate();
                 resolve(true);
             } catch (error) {
@@ -364,49 +373,40 @@ export class StorageService {
         });
     }
 
-    /**
-     * Save a dtabase to local disk
-     * @param database
-     * @returns
-     */
-    public saveToLocalDisk(platform: string): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            if (platform !== "web") {
-                reject(new Error(`not implemented for this platform: ${platform}`));
-            }
-            try {
-                await this.sqlite.saveToLocalDisk(this.defaultDB);
-                // lastValueFrom(this.http.get("assets/databases/databases.json"))
-                //     .then((response: any) => {
-                //         if (response.databaseList && response.databaseList.length) {
-                //             response.databaseList.map(async (d: string) => {
-                //                 await this.sqlite.saveToLocalDisk(d.split("SQLite.db")[0]);
-                //             });
-                //         }
-                //     })
-                //     .catch(() => {});
-                resolve();
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
+    // /**
+    //  * Save a dtabase to local disk
+    //  * @param database
+    //  * @returns
+    //  */
+    // public saveToLocalDisk(platform: string): Promise<void> {
+    //     return new Promise(async (resolve, reject) => {
+    //         if (platform !== "web") {
+    //             reject(new Error(`not implemented for this platform: ${platform}`));
+    //         }
+    //         try {
+    //             await this.sqlite.saveToLocalDisk(this.defaultDB);
+    //             resolve();
+    //         } catch (error) {
+    //             reject(error);
+    //         }
+    //     });
+    // }
 
-    /**
-     * Get a database from local disk and save it to store
-     * @param overwrite
-     * @returns
-     */
-    public async getFromLocalDiskToStore(): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                await this.sqlite.getFromLocalDiskToStore(true);
-                resolve();
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
+    // /**
+    //  * Get a database from local disk and save it to store
+    //  * @param overwrite
+    //  * @returns
+    //  */
+    // public async getFromLocalDiskToStore(): Promise<void> {
+    //     return new Promise(async (resolve, reject) => {
+    //         try {
+    //             await this.sqlite.getFromLocalDiskToStore(true);
+    //             resolve();
+    //         } catch (error) {
+    //             reject(error);
+    //         }
+    //     });
+    // }
 
     /**
      * Copy databases from public/assets/databases folder to application databases folder
@@ -472,12 +472,29 @@ export class StorageService {
         return new Promise(async (resolve, reject) => {
             if (this.sqlite != null) {
                 try {
-                    // if (db) {
-                    //     await this.dbConnect(db);
-                    // } else {
-                    //     await this.dbConnect(this.defaultDB);
-                    // }
                     resolve(await this.sqlite.importFromJson(jsonstring));
+                } catch (error) {
+                    reject(error);
+                }
+            } else {
+                reject(new Error(`no connection open`));
+            }
+        });
+    }
+
+    /**
+     * Export to a Json Object
+     * @param options
+     * @returns
+     */
+    public async exportToJson(): Promise<capSQLiteJson> {
+        return new Promise(async (resolve, reject) => {
+            let sqlDB: SQLiteDBConnection = await this.dbConnect(this.defaultDB);
+
+            if (sqlDB !== null) {
+                try {
+                    // ["full", "partial"] modes
+                    resolve(await sqlDB.exportToJson("full"));
                 } catch (error) {
                     reject(error);
                 }
