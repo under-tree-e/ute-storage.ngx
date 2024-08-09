@@ -65,15 +65,6 @@ export class StorageService {
                     await customElements.whenDefined("jeep-sqlite");
                     await this.initWebStore();
                 }
-                // jeepSqlite(window);
-                // const jeepEl: any = document.createElement("jeep-sqlite");
-                // document.body.appendChild(jeepEl);
-                // jeepEl.autoSave = true;
-                // jeepEl.wasmPath = "assets";
-                // await customElements.whenDefined("jeep-sqlite");
-                // if (this.platform === "web") {
-                //     await this.initWebStore();
-                // }
                 await this.migrate();
                 resolve(true);
             } catch (error) {
@@ -470,6 +461,8 @@ export class StorageService {
      */
     public async importFromJson(jsonstring: string): Promise<capSQLiteChanges> {
         return new Promise(async (resolve, reject) => {
+            this.sqlite.closeAllConnections();
+
             if (this.sqlite != null) {
                 try {
                     resolve(await this.sqlite.importFromJson(jsonstring));
