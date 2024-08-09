@@ -16,10 +16,16 @@ Install the package:
 npm i ngx-ute-storage
 ```
 
-Run command to copy/update sql wasm file
+Run command to copy/update sql wasm file:
 
 ```shell
 npx ute-st --wasm
+```
+
+Install CapacitorSQlite (Required for Capacitor Plugin copy process):
+
+```shell
+npm i -D @capacitor-community/sqlite
 ```
 
 ## Services and modules
