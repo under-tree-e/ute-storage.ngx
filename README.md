@@ -1,6 +1,6 @@
 # UTE Storage - PUBLIC ALPHA
 
-[![](https://img.shields.io/badge/npm_package-0.2.4-red)](https://www.npmjs.com/package/ngx-ute-storage) [![](https://img.shields.io/badge/license-MIT-blue)](https://github.com/under-tree-e/ute-storage.ngx/blob/master/LICENSE)
+[![](https://img.shields.io/badge/npm_package-0.2.5-red)](https://www.npmjs.com/package/ngx-ute-storage) [![](https://img.shields.io/badge/license-MIT-blue)](https://github.com/under-tree-e/ute-storage.ngx/blob/master/LICENSE)
 
 **Attention!!!**
 
