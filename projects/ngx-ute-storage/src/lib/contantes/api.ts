@@ -5,4 +5,5 @@ export const ApiConst = {
     wr: "where",
     or: "order",
     no: "noref",
+    le: "limit",
 };
